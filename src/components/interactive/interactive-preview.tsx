@@ -13,7 +13,7 @@ import type { InteractiveMessagePayload } from "@/lib/whatsapp/interactive";
  * customer taps them on their own device). Kept namespace-free so it can
  * be dropped into the composer, the automation builder, and the
  * quick-replies manager without namespace coupling: the three fallback
- * labels shown for empty fields default to plain English, and a host
+ * labels shown for empty fields default to Portuguese, and a host
  * that has a translator can pass its own via `labels`.
  */
 export interface InteractivePreviewLabels {
@@ -34,8 +34,8 @@ export function InteractivePreview({
   className?: string;
   labels?: InteractivePreviewLabels;
 }) {
-  const bodyLabel = labels?.body ?? "Message body…";
-  const buttonLabel = labels?.button ?? "Button";
+  const bodyLabel = labels?.body ?? "Texto da mensagem…";
+  const buttonLabel = labels?.button ?? "Botão";
   const menuLabel = labels?.menu ?? "Menu";
   return (
     <div

@@ -29,7 +29,7 @@
     "flows": "Fluxos",
     "aiAgents": "Agentes de IA",
     "settings": "Configurações",
-    "beta": "Beta",
+    "beta": "Em teste",
     "unreadConversations": "{count} {count, plural, =1 {conversa não lida} other {conversas não lidas}}",
     "unreadNotifications": "{count} {count, plural, =1 {notificação não lida} other {notificações não lidas}}",
     "roleOwner": "Proprietário",
@@ -38,7 +38,7 @@
     "roleViewer": "Visualizador",
     "closeMenu": "Fechar menu",
     "defaultUser": "Usuário",
-    "defaultAvatar": "Avatar",
+    "defaultAvatar": "Foto de perfil",
     "menuProfile": "Perfil",
     "menuSettings": "Configurações",
     "menuSignOut": "Sair"
@@ -55,7 +55,7 @@
     "openMenu": "Abrir menu",
     "openAccountMenu": "Abrir menu da conta",
     "defaultUser": "Usuário",
-    "defaultAvatar": "Avatar",
+    "defaultAvatar": "Foto de perfil",
     "menuProfile": "Perfil",
     "menuSettings": "Configurações",
     "menuSignOut": "Sair"
@@ -1167,7 +1167,7 @@
   "Flows": {
     "list": {
       "title": "Fluxos",
-      "beta": "Beta",
+      "beta": "Em teste",
       "description": "Crie conversas de WhatsApp com ramificações e botões. Útil para menus, FAQs e triagem antes de um humano entrar.",
       "newFlow": "Novo fluxo",
       "statusDraft": "Rascunho",
@@ -1245,10 +1245,10 @@
       "badgeEntry": "Entrada",
       "noNodesYet": "Nenhum nó ainda.",
       "deleteNode": "Excluir nó",
-      "canvasView": "Canvas",
+      "canvasView": "Quadro",
       "listView": "Lista",
       "noNodeSelected": "Nenhum nó selecionado",
-      "noNodeDesc": "Selecione um nó no canvas para editar sua configuração.",
+      "noNodeDesc": "Selecione um nó no quadro para editar sua configuração.",
       "editorView": "Visualização do editor",
       "form": {
         "advancesTo": "Avança para",
@@ -1442,9 +1442,9 @@
       "title": "Membros da equipe",
       "description": "Pessoas com acesso a esta conta. As funções controlam o que cada colega pode fazer.",
       "inviteMember": "Convidar membro",
-      "online": "online",
+      "online": "Conectado",
       "away": "ausente",
-      "offline": "offline",
+      "offline": "Desconectado",
       "memberCount": "{count} {count, plural, =1 {membro} other {membros}}",
       "you": "Você",
       "unnamed": "Sem nome",
@@ -1652,7 +1652,7 @@
       "syncMoreSuffix": ", +{count} outros",
       "headerSampleAlt": "Exemplo de cabeçalho",
       "categoryLabels": {
-        "Marketing": "Marketing",
+        "Marketing": "Divulgação",
         "Utility": "Utilidade",
         "Authentication": "Autenticação"
       }
@@ -1690,7 +1690,7 @@
       "notLive": "inativo",
       "apiCredentialsTitle": "Credenciais da API",
       "apiCredentialsDesc": "Informe suas credenciais da API do WhatsApp Business da Meta.",
-      "phoneNumberId": "Phone Number ID",
+      "phoneNumberId": "ID do número de telefone",
       "wabaId": "ID da conta do WhatsApp Business",
       "accessToken": "Token de acesso permanente",
       "accessTokenPlaceholder": "Informe seu token de acesso",
@@ -1764,7 +1764,7 @@
       "lastSaveFailed": "O último salvamento falhou",
       "metaErrorStep": "Etapa",
       "metaErrorCode": "Código de erro da Meta",
-      "metaErrorTrace": "Trace ID",
+      "metaErrorTrace": "ID de rastreamento",
       "metaErrorMessage": "Resposta da Meta",
       "metaErrorDetailsHint": "Cite estes detalhes ao contatar o suporte da Meta.",
       "phoneNumberIdNotNumeric": "O Phone Number ID deve conter apenas dígitos. Copie o id numérico em Meta → WhatsApp → Configuração da API, não o número de telefone em si.",
@@ -1840,7 +1840,7 @@
       "signingOut": "Saindo…",
       "signOutEverywhere": "Sair de todos os lugares",
       "signOutFailed": "Falha ao sair: {message}",
-      "avatarAlt": "Avatar",
+      "avatarAlt": "Foto de perfil",
       "fullNamePlaceholder": "Maria Souza"
     },
     "appearance": {
@@ -1934,7 +1934,7 @@
     },
     "aiConfig": {
       "title": "Configuração do agente",
-      "description": "Use sua própria chave da OpenAI, Anthropic ou de uma API compatível com OpenAI. O ElooFlow chama o provedor diretamente com sua chave — sem taxas de IA por assento, e seus dados continuam sob seu controle. Isso alimenta as respostas redigidas por IA, o bot de resposta automática e o Playground.",
+      "description": "Use sua própria chave da OpenAI, Anthropic ou de uma API compatível com OpenAI. O ElooFlow chama o provedor diretamente com sua chave — sem taxas de IA por assento, e seus dados continuam sob seu controle. Isso alimenta as respostas redigidas por IA, o bot de resposta automática e a área de testes.",
       "adminOnlyConfig": "Somente administradores e proprietários podem alterar a configuração de IA.",
       "loadFailed": "Falha ao carregar a configuração de IA",
       "providerAndKey": "Provedor e chave",
@@ -2126,12 +2126,12 @@
   },
   "Agents": {
     "title": "Agentes de IA",
-    "description": "Seu agente de IA com chave própria — configure-o e teste no playground antes que ele responda aos clientes na caixa de entrada.",
-    "tabPlayground": "Playground",
+    "description": "Seu agente de IA com chave própria — configure-o e teste na área de testes antes que ele responda aos clientes na caixa de entrada.",
+    "tabPlayground": "Área de testes",
     "tabSetup": "Configuração",
     "tabUsage": "Uso",
     "playground": {
-      "title": "Playground",
+      "title": "Área de testes",
       "subtitle": "— teste respostas como se você fosse um cliente",
       "reset": "Reiniciar",
       "emptyTitle": "Envie uma mensagem para ver como seu agente responderia.",
@@ -2145,20 +2145,20 @@
       "unreachable": "Não foi possível conectar ao agente."
     },
     "usage": {
-      "title": "Uso de tokens",
-      "description": "Tokens gastos com a chave do seu provedor por rascunhos e pelo bot de resposta automática. Apenas contagens — nenhum conteúdo de mensagem é armazenado aqui.",
+      "title": "Uso de IA",
+      "description": "Unidades de IA usadas com a chave do seu provedor por rascunhos e pelo bot de resposta automática. Apenas contagens — nenhum conteúdo de mensagem é armazenado aqui.",
       "window": "Últimos {days} dias",
       "loadFailed": "Falha ao carregar o uso",
       "empty": "Nenhum uso de IA nos últimos {days} dias ainda.",
       "emptyHint": "Isto é preenchido conforme o assistente redige e responde automaticamente.",
-      "totalTokens": "Total de tokens",
+      "totalTokens": "Total de unidades de IA",
       "llmCalls": "Chamadas ao LLM",
       "autoReply": "Resposta automática",
       "drafts": "Rascunhos",
-      "tokens": "Tokens",
-      "tokensPerDay": "Tokens por dia",
+      "tokens": "Unidades de IA",
+      "tokensPerDay": "Unidades de IA por dia",
       "byModel": "Por modelo",
-      "modelCalls": "{tokens} tok · {count, plural, =1 {# chamada} other {# chamadas}}",
+      "modelCalls": "{tokens} unidades · {count, plural, =1 {# chamada} other {# chamadas}}",
       "partialWindow": "Exibindo uma janela parcial — o uso é alto o suficiente para que apenas os registros mais recentes sejam resumidos aqui."
     }
   },

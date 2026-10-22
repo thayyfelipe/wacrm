@@ -1530,7 +1530,7 @@ function StepEditor({
     case "close_conversation":
       return (
         <p className="text-xs text-muted-foreground">
-          {t("config.closeConversationHint", { defaultValue: "Sets the conversation status to \"closed\". No configuration needed." })}
+          {t("config.closeConversationHint", { defaultValue: "Define o status da conversa como encerrada. Nenhuma configuração necessária." })}
         </p>
       )
     default:

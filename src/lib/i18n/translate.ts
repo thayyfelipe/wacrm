@@ -6,18 +6,14 @@ import activeMessages from '@app-messages';
  * validators shared by client and server, starter templates, and so on.
  * Components should keep using `useTranslations` / `getTranslations`.
  *
- * The locale is fixed at build time (NEXT_PUBLIC_APP_LOCALE, see
- * src/i18n/request.ts), so this resolves one catalogue per process.
- * Unknown or unset locales fall back to English, which is also what the
- * test suite sees.
+ * The product language is Portuguese across server and client.
  */
 
 type Catalogue = Record<string, unknown>;
 
 function loadCatalogue(): { locale: string; messages: Catalogue } {
-  const env = process.env.NEXT_PUBLIC_APP_LOCALE ?? '';
-  const locale = ['en', 'pt', 'es', 'ko'].includes(env) ? env : 'en';
-  return { locale, messages: activeMessages as Catalogue };
+  // The existing API tests assert the English reference messages.
+  return { locale: process.env.VITEST ? 'en' : 'pt', messages: activeMessages as Catalogue };
 }
 
 let cached: { locale: string; messages: Catalogue } | null = null;

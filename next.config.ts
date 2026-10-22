@@ -63,10 +63,6 @@ const SECURITY_HEADERS = [
   },
 ] as const;
 
-const APP_LOCALE = ["en", "pt", "es", "ko"].includes(process.env.NEXT_PUBLIC_APP_LOCALE ?? "")
-  ? (process.env.NEXT_PUBLIC_APP_LOCALE as string)
-  : "en";
-
 const nextConfig: NextConfig = {
   experimental: {
     cpus: 2,
@@ -74,7 +70,7 @@ const nextConfig: NextConfig = {
 
   turbopack: {
     resolveAlias: {
-      "@app-messages": `./messages/${APP_LOCALE}.json`,
+      "@app-messages": "./messages/pt.json",
     },
   },
   // Emit a self-contained server bundle (.next/standalone) so the
