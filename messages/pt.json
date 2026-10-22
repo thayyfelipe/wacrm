@@ -1934,7 +1934,7 @@
     },
     "aiConfig": {
       "title": "Configuração do agente",
-      "description": "Use sua própria chave da OpenAI, Anthropic ou de uma API compatível com OpenAI. O ElooFlow chama o provedor diretamente com sua chave — sem taxas de IA por assento, e seus dados continuam sob seu controle. Isso alimenta as respostas redigidas por IA, o bot de resposta automática e o área de testes.",
+      "description": "Use sua própria chave da OpenAI, Anthropic ou de uma API compatível com OpenAI. O ElooFlow chama o provedor diretamente com sua chave — sem taxas de IA por assento, e seus dados continuam sob seu controle. Isso alimenta as respostas redigidas por IA, o bot de resposta automática e a área de testes.",
       "adminOnlyConfig": "Somente administradores e proprietários podem alterar a configuração de IA.",
       "loadFailed": "Falha ao carregar a configuração de IA",
       "providerAndKey": "Provedor e chave",
@@ -2126,7 +2126,7 @@
   },
   "Agents": {
     "title": "Agentes de IA",
-    "description": "Seu agente de IA com chave própria — configure-o e teste no área de testes antes que ele responda aos clientes na caixa de entrada.",
+    "description": "Seu agente de IA com chave própria — configure-o e teste na área de testes antes que ele responda aos clientes na caixa de entrada.",
     "tabPlayground": "Área de testes",
     "tabSetup": "Configuração",
     "tabUsage": "Uso",
