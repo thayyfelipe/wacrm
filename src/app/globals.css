@@ -62,7 +62,7 @@
  *
  *   1. MODE   (light / dark)  → neutral surfaces. Selected with
  *      `document.documentElement.dataset.mode`. Defaults to dark.
- *   2. ACCENT (violet / …)    → the primary color only. Selected
+ *   2. ACCENT (ElooFlow / …)  → the primary color only. Selected
  *      with `document.documentElement.dataset.theme`.
  *
  * The two compose: any accent works in either mode. Neutral
@@ -72,7 +72,7 @@
  * --sidebar-ring) live in the ACCENT blocks. They set disjoint
  * variables, so cascade order between them doesn't matter.
  *
- * `:root` carries the dark-mode + violet defaults so a visitor
+ * `:root` carries the dark-mode + ElooFlow defaults so a visitor
  * renders correctly before JS runs; the boot script in
  * layout.tsx replays the saved mode + accent before first paint.
  *
@@ -88,42 +88,44 @@
 
 :root,
 html[data-mode="dark"] {
-  --background: oklch(0.13 0.01 260);
+  --background: #0b1f17;
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.18 0.01 260);
-  --card-2: oklch(0.205 0.01 260);
+  --card: #11291e;
+  --card-2: #173225;
   --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.18 0.01 260);
+  --popover: #11291e;
   --popover-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.22 0.01 260);
+  --secondary: #1c382a;
   --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.22 0.01 260);
+  --muted: #1c382a;
   --muted-foreground: oklch(0.65 0.01 260);
-  --accent: oklch(0.22 0.01 260);
+  --accent: #1c382a;
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.28 0.01 260);
-  --input: oklch(0.28 0.01 260);
+  --border: #2a4837;
+  --input: #2a4837;
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
+  --dashboard-incoming: #34d399;
+  --dashboard-outgoing: #a3e635;
   --radius: 0.625rem;
-  --sidebar: oklch(0.16 0.01 260);
+  --sidebar: #0b1f17;
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.22 0.01 260);
+  --sidebar-accent: #1c382a;
   --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.28 0.01 260);
+  --sidebar-border: #2a4837;
 }
 
 html[data-mode="light"] {
-  --background: oklch(0.99 0.002 260);
-  --foreground: oklch(0.21 0.01 260);
+  --background: #f8fafc;
+  --foreground: #111827;
   --card: oklch(1 0 0);
-  --card-2: oklch(0.985 0.002 260);
-  --card-foreground: oklch(0.21 0.01 260);
+  --card-2: #f3f7f5;
+  --card-foreground: #111827;
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.21 0.01 260);
+  --popover-foreground: #111827;
   --secondary: oklch(0.967 0.003 260);
   --secondary-foreground: oklch(0.25 0.01 260);
   --muted: oklch(0.967 0.003 260);
@@ -137,9 +139,11 @@ html[data-mode="light"] {
   --chart-3: oklch(0.7 0.06 260);
   --chart-4: oklch(0.8 0.04 260);
   --chart-5: oklch(0.87 0.03 260);
+  --dashboard-incoming: #047857;
+  --dashboard-outgoing: #4d7c0f;
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0.002 260);
-  --sidebar-foreground: oklch(0.21 0.01 260);
+  --sidebar: #f8fafc;
+  --sidebar-foreground: #111827;
   --sidebar-accent: oklch(0.96 0.004 260);
   --sidebar-accent-foreground: oklch(0.25 0.01 260);
   --sidebar-border: oklch(0.922 0.004 260);
@@ -148,6 +152,32 @@ html[data-mode="light"] {
 /* ---- ACCENT: primary color ---- */
 
 :root,
+html[data-theme="elooflow"] {
+  --primary: #10b981;
+  --primary-foreground: #0b1f17;
+  --primary-hover: #34d399;
+  --primary-soft: rgb(16 185 129 / 0.12);
+  --primary-soft-2: rgb(16 185 129 / 0.22);
+  --ring: #10b981;
+  --chart-1: #10b981;
+  --sidebar-primary: #10b981;
+  --sidebar-primary-foreground: #0b1f17;
+  --sidebar-ring: #10b981;
+}
+
+html[data-mode="light"][data-theme="elooflow"] {
+  --primary: #047857;
+  --primary-foreground: #ffffff;
+  --primary-hover: #065f46;
+  --primary-soft: rgb(16 185 129 / 0.12);
+  --primary-soft-2: rgb(16 185 129 / 0.2);
+  --ring: #047857;
+  --chart-1: #047857;
+  --sidebar-primary: #047857;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-ring: #047857;
+}
+
 html[data-theme="violet"] {
   --primary: oklch(0.526 0.247 293);
   --primary-foreground: oklch(0.985 0 0);
@@ -159,6 +189,22 @@ html[data-theme="violet"] {
   --sidebar-primary: oklch(0.526 0.247 293);
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-ring: oklch(0.526 0.247 293);
+}
+
+.brand-logo-dark {
+  display: block;
+}
+
+.brand-logo-light {
+  display: none;
+}
+
+html[data-mode="light"] .brand-logo-dark {
+  display: none;
+}
+
+html[data-mode="light"] .brand-logo-light {
+  display: block;
 }
 
 html[data-theme="emerald"] {

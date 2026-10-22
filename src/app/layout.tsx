@@ -30,15 +30,16 @@ export async function generateMetadata(): Promise<Metadata> {
 
 const metadata: Metadata = {
   title: {
-    default: "wacrm",
-    template: "%s — wacrm",
+    default: "ElooFlow",
+    template: "%s — ElooFlow",
   },
   robots: {
     index: false,
     follow: false,
   },
   icons: {
-    icon: [{ url: "/icon" }],
+    icon: [{ url: "/brand/favicon.svg", type: "image/svg+xml" }, { url: "/brand/favicon.ico", sizes: "any" }],
+    apple: [{ url: "/brand/apple-touch-icon.png" }],
   },
   formatDetection: {
     email: false,
@@ -48,7 +49,7 @@ const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#020617",
+  themeColor: "#0B1F17",
   colorScheme: "dark light",
 };
 

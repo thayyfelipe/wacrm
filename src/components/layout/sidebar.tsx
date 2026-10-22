@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
+import type { ComponentType } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useTotalUnread } from "@/hooks/use-total-unread";
@@ -12,21 +14,24 @@ import {
   Bot,
   Crown,
   GitBranch,
-  LayoutDashboard,
   LogOut,
-  MessageSquare,
-  Radio,
   Settings,
   Shield,
   User,
   UserCog,
-  Users,
   UsersRound,
-  Workflow,
   X,
-  Zap,
 } from "lucide-react";
 import type { AccountRole } from "@/lib/auth/roles";
+import {
+  AutomationsIcon,
+  CampaignsIcon,
+  ContactsIcon,
+  ConversationsIcon,
+  FlowsIcon,
+  ReportsIcon,
+  SettingsIcon,
+} from "@/components/layout/brand-nav-icons";
 
 // Per-role chip metadata used in the sidebar's account strip + the
 // Members tab roster. Keeping this near both consumers in a single
@@ -39,9 +44,9 @@ const ROLE_CHIP: Record<
   owner: {
     icon: Crown,
     labelKey: "roleOwner",
-    // Amber: scarce, immutable, "the boss" — gets visual emphasis.
+    // The crown and label distinguish the owner while the badge stays on-brand.
     className:
-      "border-amber-500/40 bg-amber-500/10 text-amber-300",
+      "border-primary/40 bg-primary/10 text-primary",
   },
   admin: {
     icon: Shield,
@@ -81,7 +86,7 @@ import {
 interface NavItem {
   href: string;
   labelKey: string;
-  icon: typeof LayoutDashboard;
+  icon: ComponentType<{ className?: string }>;
   /**
    * When true, the nav row renders a small "Beta" chip after the label.
    * Purely informational — doesn't affect routing or access.
@@ -90,19 +95,19 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { href: "/dashboard", labelKey: "dashboard", icon: LayoutDashboard },
-  { href: "/inbox", labelKey: "inbox", icon: MessageSquare },
+  { href: "/dashboard", labelKey: "dashboard", icon: ReportsIcon },
+  { href: "/inbox", labelKey: "inbox", icon: ConversationsIcon },
   { href: "/notifications", labelKey: "notifications", icon: Bell },
-  { href: "/contacts", labelKey: "contacts", icon: Users },
+  { href: "/contacts", labelKey: "contacts", icon: ContactsIcon },
   { href: "/pipelines", labelKey: "pipelines", icon: GitBranch },
-  { href: "/broadcasts", labelKey: "broadcasts", icon: Radio },
-  { href: "/automations", labelKey: "automations", icon: Zap },
-  { href: "/flows", labelKey: "flows", icon: Workflow, beta: true },
+  { href: "/broadcasts", labelKey: "broadcasts", icon: CampaignsIcon },
+  { href: "/automations", labelKey: "automations", icon: AutomationsIcon },
+  { href: "/flows", labelKey: "flows", icon: FlowsIcon, beta: true },
   { href: "/agents", labelKey: "aiAgents", icon: Bot },
 ];
 
 const bottomNavItems = [
-  { href: "/settings", labelKey: "settings", icon: Settings },
+  { href: "/settings", labelKey: "settings", icon: SettingsIcon },
 ];
 
 interface SidebarProps {
@@ -187,13 +192,9 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
         {/* Logo row. On mobile we put a close button here; on desktop the
             close button is hidden since the sidebar is always-visible. */}
         <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border px-4">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <MessageSquare className="h-4 w-4" />
-            </div>
-            <span className="text-sm font-semibold text-foreground">
-              {t("title")}
-            </span>
+          <Link href="/dashboard" className="flex items-center" aria-label={t("title")}>
+            <Image src="/brand/logo-principal.svg" alt="ElooFlow" width={155} height={32} className="brand-logo-light h-8 w-auto" priority />
+            <Image src="/brand/logo-escuro.svg" alt="" width={155} height={32} className="brand-logo-dark h-8 w-auto" priority />
           </Link>
           <button
             type="button"
@@ -240,7 +241,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                     {item.beta && (
                       <span
                         aria-label={t("beta")}
-                        className="rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-amber-300"
+                        className="rounded-full border border-primary/40 bg-primary/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-primary"
                       >
                         {t("beta")}
                       </span>

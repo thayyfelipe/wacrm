@@ -67,7 +67,7 @@ export function ResponseTimeChart({
         </div>
         <div className="flex items-center gap-3 text-right text-xs">
           {thresholdMinutes > 0 && (
-            <span className="rounded-full border border-rose-500/40 bg-rose-500/10 px-2 py-0.5 font-medium text-rose-300 tabular-nums">
+            <span className="rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 font-medium text-primary tabular-nums">
               {t('target', { minutes: thresholdMinutes })}
             </span>
           )}
@@ -102,9 +102,7 @@ export function ResponseTimeChart({
             data={chartData}
             index="day"
             categories={[category]}
-            // 'violet' maps to Tailwind's `fill-violet-500` — matches
-            // the brand accent the hand-rolled bars used (#7c3aed).
-            colors={['violet']}
+            colors={['brand']}
             valueFormatter={(value) => `${value.toFixed(1)}m`}
             showLegend={false}
             yAxisWidth={48}
