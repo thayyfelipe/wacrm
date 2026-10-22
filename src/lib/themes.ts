@@ -14,6 +14,7 @@
  */
 
 export const THEME_IDS = [
+  "elooflow",
   "violet",
   "emerald",
   "cobalt",
@@ -23,7 +24,7 @@ export const THEME_IDS = [
 
 export type ThemeId = (typeof THEME_IDS)[number];
 
-export const DEFAULT_THEME: ThemeId = "violet";
+export const DEFAULT_THEME: ThemeId = "elooflow";
 
 export const STORAGE_KEY = "wacrm.theme";
 
@@ -67,6 +68,12 @@ export interface ThemeMeta {
 }
 
 export const THEMES: ReadonlyArray<ThemeMeta> = [
+  {
+    id: "elooflow",
+    name: "ElooFlow",
+    tagline: "Verde da identidade ElooFlow.",
+    swatch: "#10B981",
+  },
   {
     id: "violet",
     name: "Violet",
