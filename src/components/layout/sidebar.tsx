@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
+import type { ComponentType } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useTotalUnread } from "@/hooks/use-total-unread";
@@ -13,21 +14,24 @@ import {
   Bot,
   Crown,
   GitBranch,
-  LayoutDashboard,
   LogOut,
-  MessageSquare,
-  Radio,
   Settings,
   Shield,
   User,
   UserCog,
-  Users,
   UsersRound,
-  Workflow,
   X,
-  Zap,
 } from "lucide-react";
 import type { AccountRole } from "@/lib/auth/roles";
+import {
+  AutomationsIcon,
+  CampaignsIcon,
+  ContactsIcon,
+  ConversationsIcon,
+  FlowsIcon,
+  ReportsIcon,
+  SettingsIcon,
+} from "@/components/layout/brand-nav-icons";
 
 // Per-role chip metadata used in the sidebar's account strip + the
 // Members tab roster. Keeping this near both consumers in a single
@@ -82,7 +86,7 @@ import {
 interface NavItem {
   href: string;
   labelKey: string;
-  icon: typeof LayoutDashboard;
+  icon: ComponentType<{ className?: string }>;
   /**
    * When true, the nav row renders a small "Beta" chip after the label.
    * Purely informational — doesn't affect routing or access.
@@ -91,19 +95,19 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { href: "/dashboard", labelKey: "dashboard", icon: LayoutDashboard },
-  { href: "/inbox", labelKey: "inbox", icon: MessageSquare },
+  { href: "/dashboard", labelKey: "dashboard", icon: ReportsIcon },
+  { href: "/inbox", labelKey: "inbox", icon: ConversationsIcon },
   { href: "/notifications", labelKey: "notifications", icon: Bell },
-  { href: "/contacts", labelKey: "contacts", icon: Users },
+  { href: "/contacts", labelKey: "contacts", icon: ContactsIcon },
   { href: "/pipelines", labelKey: "pipelines", icon: GitBranch },
-  { href: "/broadcasts", labelKey: "broadcasts", icon: Radio },
-  { href: "/automations", labelKey: "automations", icon: Zap },
-  { href: "/flows", labelKey: "flows", icon: Workflow, beta: true },
+  { href: "/broadcasts", labelKey: "broadcasts", icon: CampaignsIcon },
+  { href: "/automations", labelKey: "automations", icon: AutomationsIcon },
+  { href: "/flows", labelKey: "flows", icon: FlowsIcon, beta: true },
   { href: "/agents", labelKey: "aiAgents", icon: Bot },
 ];
 
 const bottomNavItems = [
-  { href: "/settings", labelKey: "settings", icon: Settings },
+  { href: "/settings", labelKey: "settings", icon: SettingsIcon },
 ];
 
 interface SidebarProps {
