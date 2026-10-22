@@ -108,6 +108,8 @@ html[data-mode="dark"] {
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
+  --dashboard-incoming: #34d399;
+  --dashboard-outgoing: #a3e635;
   --radius: 0.625rem;
   --sidebar: #0b1f17;
   --sidebar-foreground: oklch(0.985 0 0);
@@ -137,6 +139,8 @@ html[data-mode="light"] {
   --chart-3: oklch(0.7 0.06 260);
   --chart-4: oklch(0.8 0.04 260);
   --chart-5: oklch(0.87 0.03 260);
+  --dashboard-incoming: #047857;
+  --dashboard-outgoing: #4d7c0f;
   --radius: 0.625rem;
   --sidebar: #f8fafc;
   --sidebar-foreground: #111827;
@@ -159,6 +163,19 @@ html[data-theme="elooflow"] {
   --sidebar-primary: #10b981;
   --sidebar-primary-foreground: #0b1f17;
   --sidebar-ring: #10b981;
+}
+
+html[data-mode="light"][data-theme="elooflow"] {
+  --primary: #047857;
+  --primary-foreground: #ffffff;
+  --primary-hover: #065f46;
+  --primary-soft: rgb(16 185 129 / 0.12);
+  --primary-soft-2: rgb(16 185 129 / 0.2);
+  --ring: #047857;
+  --chart-1: #047857;
+  --sidebar-primary: #047857;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-ring: #047857;
 }
 
 html[data-theme="violet"] {
