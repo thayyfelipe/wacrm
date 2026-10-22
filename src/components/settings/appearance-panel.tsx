@@ -7,6 +7,7 @@ import { MODES, THEMES, type Mode, type ThemeId } from "@/lib/themes";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 import { SettingsPanelHead } from "./settings-panel-head";
+import { InstallAppCard } from "./install-app-card";
 
 /**
  * Appearance panel — light/dark mode + accent-color picker.
@@ -73,6 +74,7 @@ export function AppearancePanel() {
           ))}
         </div>
       </div>
+      <InstallAppCard />
     </section>
   );
 }
@@ -95,7 +97,7 @@ function ModeCard({
       role="radio"
       onClick={onPick}
       aria-checked={isActive}
-      aria-label={t("useMode", { mode })}
+      aria-label={t("useMode", { mode: isLight ? "claro" : "escuro" })}
       className={cn(
         "flex items-center gap-3 rounded-lg border bg-card p-4 text-left transition-colors",
         isActive
@@ -110,7 +112,7 @@ function ModeCard({
         <Icon className="h-4 w-4" />
       </span>
       <span className="flex-1 text-sm font-semibold capitalize text-foreground">
-        {mode}
+        {isLight ? "Claro" : "Escuro"}
       </span>
       {isActive && (
         <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-medium text-primary">

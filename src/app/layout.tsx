@@ -6,6 +6,7 @@ import Script from "next/script";
 import "./globals.css";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { ThemedToaster } from "@/components/themed-toaster";
+import { InstallAppProvider } from "@/components/settings/install-app-card";
 import {
   DEFAULT_MODE,
   DEFAULT_THEME,
@@ -16,7 +17,7 @@ import {
 } from "@/lib/themes";
 
 const inter = Inter({
-  variable: "--font-sans",
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
@@ -40,6 +41,11 @@ const metadata: Metadata = {
   icons: {
     icon: [{ url: "/brand/favicon.svg", type: "image/svg+xml" }, { url: "/brand/favicon.ico", sizes: "any" }],
     apple: [{ url: "/brand/apple-touch-icon.png" }],
+  },
+  appleWebApp: {
+    capable: true,
+    title: "ElooFlow",
+    statusBarStyle: "default",
   },
   formatDetection: {
     email: false,
@@ -117,10 +123,12 @@ export default async function RootLayout({
       </head>
       <body className="min-h-full bg-background text-foreground font-sans">
         <NextIntlClientProvider messages={messages} locale={locale}>
-          <ThemeProvider>
-            {children}
-            <ThemedToaster />
-          </ThemeProvider>
+          <InstallAppProvider>
+            <ThemeProvider>
+              {children}
+              <ThemedToaster />
+            </ThemeProvider>
+          </InstallAppProvider>
         </NextIntlClientProvider>
       </body>
     </html>
