@@ -24,6 +24,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
 import { SettingsPanelHead } from './settings-panel-head';
+import { WhatsAppHealth } from './whatsapp-health';
 import {
   Accordion,
   AccordionItem,
@@ -600,6 +601,7 @@ export function WhatsAppConfig() {
         )}
 
         {/* Connection Status */}
+        {accountId && <WhatsAppHealth key={accountId} accountId={accountId} configured={Boolean(config?.phone_number_id)} />}
         <Alert className="bg-card border-border">
           <div className="flex items-center gap-2">
             {connectionStatus === 'connected' ? (
