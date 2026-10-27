@@ -88,11 +88,6 @@ interface NavItem {
   href: string;
   labelKey: string;
   icon: ComponentType<{ className?: string }>;
-  /**
-   * When true, the nav row renders a small "Beta" chip after the label.
-   * Purely informational — doesn't affect routing or access.
-   */
-  beta?: boolean;
 }
 
 const navItems: NavItem[] = [
@@ -104,7 +99,7 @@ const navItems: NavItem[] = [
   { href: "/pipelines", labelKey: "pipelines", icon: GitBranch },
   { href: "/broadcasts", labelKey: "broadcasts", icon: CampaignsIcon },
   { href: "/automations", labelKey: "automations", icon: AutomationsIcon },
-  { href: "/flows", labelKey: "flows", icon: FlowsIcon, beta: true },
+  { href: "/flows", labelKey: "flows", icon: FlowsIcon },
   { href: "/agents", labelKey: "aiAgents", icon: Bot },
 ];
 
@@ -240,14 +235,6 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                   >
                     <item.icon className="h-4 w-4" />
                     <span className="flex-1">{t(item.labelKey as string)}</span>
-                    {item.beta && (
-                      <span
-                        aria-label={t("beta")}
-                        className="rounded-full border border-primary/40 bg-primary/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-primary"
-                      >
-                        {t("beta")}
-                      </span>
-                    )}
                     {showUnreadDot && (
                       <span
                         aria-label={t("unreadConversations", { count: totalUnread })}
