@@ -12,7 +12,9 @@ export async function PATCH(request: Request, context: Context) {
     const { id } = await context.params
     const body = await request.json().catch(() => null)
     const token = typeof body?.token === 'string' ? body.token.trim() : ''
-    if (token.length < 16 || token.length > 512) return NextResponse.json({ error: 'Token inválido' }, { status: 400 })
+    // Kiwify does not document a minimum webhook-token length. Accept the
+    // exact non-empty token it issued rather than imposing an arbitrary size.
+    if (!token || token.length > 512) return NextResponse.json({ error: 'Informe o token do webhook da Kiwify' }, { status: 400 })
     const { data: owned } = await ctx.supabase
       .from('kiwify_integrations').select('id').eq('id', id).eq('account_id', ctx.accountId).maybeSingle()
     if (!owned) return NextResponse.json({ error: 'Integração não encontrada' }, { status: 404 })
