@@ -9,6 +9,7 @@ describe("summarizeWhatsAppActivity", () => {
       { conversation_id: "a", sender_type: "customer", status: "sent", created_at: at(0) },
       { conversation_id: "b", sender_type: "customer", status: "sent", created_at: at(2) },
       { conversation_id: "b", sender_type: "agent", status: "failed", created_at: at(3) },
+      { conversation_id: "b", sender_type: "agent", status: "sending", created_at: at(4) },
       { conversation_id: "a", sender_type: "customer", status: "sent", created_at: at(20) },
       { conversation_id: "a", sender_type: "bot", status: "sent", created_at: at(25) },
     ])).toEqual({

@@ -31,7 +31,7 @@ export function summarizeWhatsAppActivity(rows: WhatsAppMessageRow[]): WhatsAppA
       if (!pending.has(row.conversation_id)) pending.set(row.conversation_id, timestamp);
       continue;
     }
-    if (row.status === "failed") continue;
+    if (row.status === "failed" || row.status === "sending") continue;
     if (row.sender_type === "agent") agentMessages++;
     if (row.sender_type === "bot") botMessages++;
     if (row.sender_type !== "agent" && row.sender_type !== "bot") continue;
