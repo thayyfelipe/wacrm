@@ -14,6 +14,7 @@ import {
   Bot,
   Crown,
   GitBranch,
+  MessageCircleMore,
   LogOut,
   Settings,
   Shield,
@@ -96,6 +97,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { href: "/dashboard", labelKey: "dashboard", icon: ReportsIcon },
+  { href: "/whatsapp-dashboard", labelKey: "whatsappDashboard", icon: MessageCircleMore },
   { href: "/inbox", labelKey: "inbox", icon: ConversationsIcon },
   { href: "/notifications", labelKey: "notifications", icon: Bell },
   { href: "/contacts", labelKey: "contacts", icon: ContactsIcon },
@@ -191,8 +193,8 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
       >
         {/* Logo row. On mobile we put a close button here; on desktop the
             close button is hidden since the sidebar is always-visible. */}
-        <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border px-4">
-          <Link href="/dashboard" className="flex items-center" aria-label={t("title")}>
+        <div className="relative flex h-20 shrink-0 items-center justify-center border-b border-border px-4">
+          <Link href="/dashboard" className="flex items-center justify-center" aria-label={t("title")}>
             <Image src="/brand/logo-principal.svg" alt="ElooFlow" width={155} height={32} className="brand-logo-light h-8 w-auto" priority />
             <Image src="/brand/logo-escuro.svg" alt="" width={155} height={32} className="brand-logo-dark h-8 w-auto" priority />
           </Link>
@@ -200,7 +202,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
             type="button"
             onClick={onClose}
             aria-label={t("closeMenu")}
-            className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground lg:hidden"
+            className="absolute right-3 flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground lg:hidden"
           >
             <X className="h-5 w-5" />
           </button>
@@ -230,7 +232,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                     href={item.href}
                     className={cn(
                       // Taller on mobile so fingers can hit the row reliably (≥44px).
-                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors lg:py-2",
+                      "flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition-colors lg:py-2",
                       isActive
                         ? "bg-primary/10 text-primary"
                         : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -279,7 +281,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                   <Link
                     href={item.href}
                     className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors lg:py-2",
+                      "flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition-colors lg:py-2",
                       isActive
                         ? "bg-primary/10 text-primary"
                         : "text-muted-foreground hover:bg-muted hover:text-foreground",
