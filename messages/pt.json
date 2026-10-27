@@ -1827,7 +1827,8 @@
       "fields": "Campos e tags",
       "deals": "Negócios e moeda",
       "members": "Membros da equipe",
-      "api": "Chaves de API"
+      "api": "Chaves de API",
+      "kiwify": "Kiwify"
     },
     "groups": {
       "account": "Conta",
