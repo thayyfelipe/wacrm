@@ -14,7 +14,6 @@ import {
   Bot,
   Crown,
   GitBranch,
-  MessageCircleMore,
   LogOut,
   Settings,
   Shield,
@@ -92,7 +91,6 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { href: "/dashboard", labelKey: "dashboard", icon: ReportsIcon },
-  { href: "/whatsapp-dashboard", labelKey: "whatsappDashboard", icon: MessageCircleMore },
   { href: "/inbox", labelKey: "inbox", icon: ConversationsIcon },
   { href: "/notifications", labelKey: "notifications", icon: Bell },
   { href: "/contacts", labelKey: "contacts", icon: ContactsIcon },
