@@ -31,13 +31,20 @@ export function KiwifySettings() {
   const [productId, setProductId] = useState('')
   const [tokens, setTokens] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
     const [integrationResponse, salesResponse] = await Promise.all([
       fetch('/api/integrations/kiwify', { cache: 'no-store' }),
       fetch('/api/integrations/kiwify/sales', { cache: 'no-store' }),
     ])
-    if (integrationResponse.ok) setIntegrations((await integrationResponse.json()).integrations)
+    if (integrationResponse.ok) {
+      setIntegrations((await integrationResponse.json()).integrations)
+      setLoadError(null)
+    } else {
+      const payload = await integrationResponse.json().catch(() => ({}))
+      setLoadError(payload.error || 'Falha ao carregar as conexões da Kiwify')
+    }
     if (salesResponse.ok) setSales((await salesResponse.json()).sales)
   }, [])
 
@@ -92,6 +99,7 @@ export function KiwifySettings() {
       <h2 className="text-xl font-semibold text-foreground">Kiwify</h2>
       <p className="mt-1 text-sm text-muted-foreground">Receba as compras aprovadas dos seus produtos nesta conta do ElooFlow.</p>
     </div>
+    {loadError && <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-foreground">{loadError}</p>}
     {canEditSettings && <section className="rounded-2xl border border-border bg-card p-5 space-y-4">
       <h3 className="font-semibold text-foreground">Conectar um produto</h3>
       <p className="text-sm text-muted-foreground">Encontre o ID na URL de edição do produto na Kiwify. Crie uma conexão por produto.</p>
