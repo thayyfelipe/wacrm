@@ -28,6 +28,16 @@ export interface ApprovedKiwifySale {
   subscription_id: string | null
 }
 
+export interface KiwifyOrderEvent {
+  event_type: 'pix_created' | 'order_approved'
+  order_id: string
+  order_ref: string | null
+  product_id: string
+  product_name: string | null
+  customer_name: string | null
+  customer_phone: string | null
+}
+
 function object(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? value as Record<string, unknown>
@@ -36,6 +46,29 @@ function object(value: unknown): Record<string, unknown> {
 
 function optionalString(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+/** Only official order events with the expected payment state are actionable. */
+export function parseKiwifyOrderEvent(payload: unknown): KiwifyOrderEvent | null {
+  const root = object(payload)
+  const kind = root.webhook_event_type
+  const approved = kind === 'order_approved' && root.order_status === 'paid'
+  const pix = kind === 'pix_created' && root.order_status === 'waiting_payment' && root.payment_method === 'pix'
+  if (!approved && !pix) return null
+  const orderId = optionalString(root.order_id)
+  const product = object(root.Product)
+  const productId = optionalString(product.product_id)
+  if (!orderId || orderId.length > 200 || !productId) return null
+  const customer = object(root.Customer)
+  return {
+    event_type: approved ? 'order_approved' : 'pix_created',
+    order_id: orderId,
+    order_ref: optionalString(root.order_ref),
+    product_id: productId,
+    product_name: optionalString(product.product_name),
+    customer_name: optionalString(customer.full_name),
+    customer_phone: optionalString(customer.mobile),
+  }
 }
 
 /** Return null for test shapes or events that must not create a paid sale. */
