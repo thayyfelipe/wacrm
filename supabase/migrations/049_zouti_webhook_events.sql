@@ -59,9 +59,9 @@ CREATE POLICY zouti_events_select ON zouti_events FOR SELECT TO authenticated
   USING (is_account_member(account_id, 'admin'));
 -- Webhook writes use the service role. Prevent tenant mismatch even there.
 CREATE FUNCTION zouti_event_account_guard() RETURNS trigger
-LANGUAGE plpgsql AS $$
+LANGUAGE plpgsql SET search_path = '' AS $$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM zouti_integrations i
+  IF NOT EXISTS (SELECT 1 FROM public.zouti_integrations i
                  WHERE i.id = NEW.integration_id AND i.account_id = NEW.account_id) THEN
     RAISE EXCEPTION 'Zouti integration/account mismatch';
   END IF;
