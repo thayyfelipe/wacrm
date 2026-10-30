@@ -7,7 +7,20 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
 interface Integration { id: string; name: string; product_id: string | null; enabled: boolean; pix_automation_enabled: boolean; pix_template_name: string | null }
-interface Event { id: string; event_type: string; object_name: string; product_name: string | null; product_matched: boolean; status: string | null; received_at: string; pix_send_status: string | null; pix_send_error: string | null }
+interface Event { id: string; event_type: string; object_name: string; product_name: string | null; product_matched: boolean; status: string | null; received_at: string; pix_send_status: string | null; pix_send_error: string | null; delivery_status?: string | null; delivery_error_code?: number | null }
+
+function pixOutcome(event: Event): string | null {
+  if (!event.pix_send_status || event.pix_send_status === 'skipped') return null
+  if (event.pix_send_status !== 'sent') return ({ pending: 'Pix: aguardando', processing: 'Pix: processando', failed: 'Pix: falha no envio' } as Record<string, string>)[event.pix_send_status] ?? null
+  if (event.delivery_status === 'failed') {
+    return event.delivery_error_code === 130497
+      ? 'Pix: falha na entrega — Meta restringiu esta conta para mensagens a este país (130497)'
+      : `Pix: falha na entrega${event.delivery_error_code ? ` (Meta ${event.delivery_error_code})` : ''}`
+  }
+  if (event.delivery_status === 'read') return 'Pix: lido'
+  if (event.delivery_status === 'delivered') return 'Pix: entregue'
+  return 'Pix: aceito pela Meta, aguardando entrega'
+}
 
 export function ZoutiSettings() {
   const { canEditSettings } = useAuth()
@@ -117,7 +130,7 @@ export function ZoutiSettings() {
       </section>
     })}
     <section className="rounded-2xl border border-border bg-card p-5"><div className="flex items-center justify-between gap-2"><h3 className="font-semibold">Eventos recebidos</h3><Button variant="outline" onClick={() => void refresh()}>Atualizar</Button></div>
-      {events.length === 0 ? <p className="mt-3 text-sm text-muted-foreground">Nenhum evento recebido.</p> : <div className="mt-3 space-y-2">{events.map((event) => <div key={event.id} className="flex flex-wrap justify-between gap-2 border-t border-border pt-2 text-sm"><span>{event.event_type} · {event.product_matched ? (event.product_name || event.object_name) : 'Produto não corresponde (possível teste)'} · {event.status || 'Sem status'}{event.pix_send_status && event.pix_send_status !== 'skipped' ? ` · Pix: ${{ pending: 'aguardando', processing: 'processando', sent: 'enviado', failed: 'falhou' }[event.pix_send_status] || event.pix_send_status}` : ''}{event.pix_send_error ? ` · ${event.pix_send_error}` : ''}</span><span className="text-muted-foreground">{new Date(event.received_at).toLocaleString('pt-BR')}</span></div>)}</div>}
+      {events.length === 0 ? <p className="mt-3 text-sm text-muted-foreground">Nenhum evento recebido.</p> : <div className="mt-3 space-y-2">{events.map((event) => <div key={event.id} className="flex flex-wrap justify-between gap-2 border-t border-border pt-2 text-sm"><span>{event.event_type} · {event.product_matched ? (event.product_name || event.object_name) : 'Produto não corresponde (possível teste)'} · {event.status || 'Sem status'}{pixOutcome(event) ? ` · ${pixOutcome(event)}` : ''}{event.pix_send_error ? ` · ${event.pix_send_error}` : ''}</span><span className="text-muted-foreground">{new Date(event.received_at).toLocaleString('pt-BR')}</span></div>)}</div>}
     </section>
   </div>
 }

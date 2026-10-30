@@ -65,6 +65,9 @@ function LocalizedInteractivePreview({
 }
 
 function failureReason(message: Message): string | null {
+  if (message.status === "failed" && message.error_code === 130497) {
+    return "Não entregue: a Meta restringiu esta conta para enviar mensagens ao país do destinatário (130497).";
+  }
   if (message.status !== "failed" || !message.error_title) return null;
   return message.error_details
     ? `${message.error_title} — ${message.error_details}`
