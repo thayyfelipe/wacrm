@@ -6,8 +6,8 @@ import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
-interface Integration { id: string; name: string; product_id: string | null; enabled: boolean }
-interface Event { id: string; event_type: string; object_name: string; product_name: string | null; product_matched: boolean; status: string | null; received_at: string }
+interface Integration { id: string; name: string; product_id: string | null; enabled: boolean; pix_automation_enabled: boolean; pix_template_name: string | null }
+interface Event { id: string; event_type: string; object_name: string; product_name: string | null; product_matched: boolean; status: string | null; received_at: string; pix_send_status: string | null; pix_send_error: string | null }
 
 export function ZoutiSettings() {
   const { canEditSettings } = useAuth()
@@ -16,6 +16,7 @@ export function ZoutiSettings() {
   const [name, setName] = useState('')
   const [productId, setProductId] = useState('')
   const [secrets, setSecrets] = useState<Record<string, string>>({})
+  const [pixTemplates, setPixTemplates] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -65,9 +66,25 @@ export function ZoutiSettings() {
     finally { setBusy(false) }
   }
 
+  async function setPix(integration: Integration) {
+    setBusy(true)
+    try {
+      const enabled = !integration.pix_automation_enabled
+      const r = await fetch(`/api/integrations/zouti/${integration.id}/pix`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled, template_name: pixTemplates[integration.id] ?? integration.pix_template_name ?? 'kiwify_pix_gerado' }),
+      })
+      const payload = await r.json()
+      if (!r.ok) throw new Error(payload.error || 'Falha ao salvar envio de Pix.')
+      await refresh()
+      toast.success(enabled ? 'Envio de Pix ativado para novos eventos.' : 'Envio de Pix desativado.')
+    } catch (err) { toast.error(err instanceof Error ? err.message : 'Falha ao salvar envio de Pix.') }
+    finally { setBusy(false) }
+  }
+
   return <div className="space-y-6">
     <div><h2 className="text-xl font-semibold text-foreground">Zouti</h2>
-      <p className="mt-1 text-sm text-muted-foreground">Receba e confira eventos dos seus produtos. Esta etapa não envia mensagens pelo WhatsApp.</p></div>
+      <p className="mt-1 text-sm text-muted-foreground">Receba os eventos dos produtos e configure o envio do modelo de Pix criado.</p></div>
     {error && <p role="alert" className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm">{error}</p>}
     {canEditSettings && <section className="space-y-4 rounded-2xl border border-border bg-card p-5">
       <h3 className="font-semibold">Conectar webhook da Zouti</h3>
@@ -89,10 +106,18 @@ export function ZoutiSettings() {
           <Button disabled={busy || !secrets[integration.id]?.trim()} onClick={() => void activate(integration.id)}>{integration.enabled ? 'Atualizar segredo' : 'Ativar conexão'}</Button>
           {integration.enabled && <Button variant="outline" disabled={busy} onClick={() => void deactivate(integration.id)}>Desativar</Button>}
         </div>}
+        <div className="space-y-2 rounded-2xl border border-border p-4">
+          <p className="font-medium">Mensagem para Pix criado · {integration.pix_automation_enabled ? 'Ativada' : 'Desativada'}</p>
+          <p className="text-xs text-muted-foreground">Apenas novos eventos do produto configurado. Variáveis: nome do comprador e nome do produto. Falhas não geram reenvio automático.</p>
+          {canEditSettings && <div className="flex flex-wrap gap-2">
+            <Input className="min-w-52 flex-1" aria-label="Modelo aprovado para Pix criado" value={pixTemplates[integration.id] ?? integration.pix_template_name ?? 'kiwify_pix_gerado'} onChange={(e) => setPixTemplates((current) => ({ ...current, [integration.id]: e.target.value }))} />
+            <Button variant={integration.pix_automation_enabled ? 'outline' : 'default'} disabled={busy || !integration.enabled || !integration.product_id} onClick={() => void setPix(integration)}>{integration.pix_automation_enabled ? 'Desativar envio' : 'Ativar envio'}</Button>
+          </div>}
+        </div>
       </section>
     })}
     <section className="rounded-2xl border border-border bg-card p-5"><div className="flex items-center justify-between gap-2"><h3 className="font-semibold">Eventos recebidos</h3><Button variant="outline" onClick={() => void refresh()}>Atualizar</Button></div>
-      {events.length === 0 ? <p className="mt-3 text-sm text-muted-foreground">Nenhum evento recebido.</p> : <div className="mt-3 space-y-2">{events.map((event) => <div key={event.id} className="flex flex-wrap justify-between gap-2 border-t border-border pt-2 text-sm"><span>{event.event_type} · {event.product_matched ? (event.product_name || event.object_name) : 'Produto não corresponde (possível teste)'} · {event.status || 'Sem status'}</span><span className="text-muted-foreground">{new Date(event.received_at).toLocaleString('pt-BR')}</span></div>)}</div>}
+      {events.length === 0 ? <p className="mt-3 text-sm text-muted-foreground">Nenhum evento recebido.</p> : <div className="mt-3 space-y-2">{events.map((event) => <div key={event.id} className="flex flex-wrap justify-between gap-2 border-t border-border pt-2 text-sm"><span>{event.event_type} · {event.product_matched ? (event.product_name || event.object_name) : 'Produto não corresponde (possível teste)'} · {event.status || 'Sem status'}{event.pix_send_status && event.pix_send_status !== 'skipped' ? ` · Pix: ${{ pending: 'aguardando', processing: 'processando', sent: 'enviado', failed: 'falhou' }[event.pix_send_status] || event.pix_send_status}` : ''}{event.pix_send_error ? ` · ${event.pix_send_error}` : ''}</span><span className="text-muted-foreground">{new Date(event.received_at).toLocaleString('pt-BR')}</span></div>)}</div>}
     </section>
   </div>
 }
