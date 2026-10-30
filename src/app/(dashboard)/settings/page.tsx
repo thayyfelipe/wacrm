@@ -19,6 +19,7 @@ import { DealsSettings } from '@/components/settings/deals-settings';
 import { MembersTab } from '@/components/settings/members-tab';
 import { ApiKeysSettings } from '@/components/settings/api-keys-settings';
 import { KiwifySettings } from '@/components/settings/kiwify-settings';
+import { ZoutiSettings } from '@/components/settings/zouti-settings';
 import {
   resolveSection,
   type SettingsSection,
@@ -83,6 +84,7 @@ function SettingsPageInner() {
     members: <MembersTab />,
     api: <ApiKeysSettings />,
     kiwify: <KiwifySettings />,
+    zouti: <ZoutiSettings />,
   };
 
   return (
