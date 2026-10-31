@@ -50,6 +50,9 @@ export function ZoutiSettings() {
   const { canEditSettings } = useAuth()
   const [integrations, setIntegrations] = useState<Integration[]>([])
   const [events, setEvents] = useState<Event[]>([])
+  const [eventsPage, setEventsPage] = useState(1)
+  const [eventsTotal, setEventsTotal] = useState(0)
+  const [eventsLoading, setEventsLoading] = useState(false)
   const [name, setName] = useState('')
   const [productId, setProductId] = useState('')
   const [secrets, setSecrets] = useState<Record<string, string>>({})
@@ -60,18 +63,29 @@ export function ZoutiSettings() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const loadEvents = useCallback(async (page: number) => {
+    setEventsLoading(true)
+    try {
+      const response = await fetch(`/api/integrations/zouti/events?page=${page}`, { cache: 'no-store' })
+      if (!response.ok) throw new Error('Falha ao carregar eventos da Zouti.')
+      const result = await response.json()
+      setEvents(result.events)
+      setEventsTotal(result.pagination.total)
+    } catch (err) { toast.error(err instanceof Error ? err.message : 'Falha ao carregar eventos da Zouti.') }
+    finally { setEventsLoading(false) }
+  }, [])
+
   const refresh = useCallback(async () => {
-    const [i, e, m] = await Promise.all([
+    const [i, m] = await Promise.all([
       fetch('/api/integrations/zouti', { cache: 'no-store' }),
-      fetch('/api/integrations/zouti/events', { cache: 'no-store' }),
       fetch('/api/integrations/zouti/templates', { cache: 'no-store' }),
     ])
     if (i.ok) { setIntegrations((await i.json()).integrations); setError(null) }
     else setError((await i.json().catch(() => ({}))).error || 'Falha ao carregar conexões da Zouti.')
-    if (e.ok) setEvents((await e.json()).events)
+    await loadEvents(eventsPage)
     if (m.ok) setApprovedTemplates((await m.json()).templates)
     else setError('Falha ao carregar modelos aprovados. Atualize a página para tentar novamente.')
-  }, [])
+  }, [eventsPage, loadEvents])
 
   useEffect(() => { void refresh().catch(() => toast.error('Falha ao carregar Zouti')) }, [refresh])
 
@@ -202,8 +216,9 @@ export function ZoutiSettings() {
         </div>
       </section>
     })}
-    <section className="rounded-2xl border border-border bg-card p-5"><div className="flex items-center justify-between gap-2"><h3 className="font-semibold">Eventos recebidos</h3><Button variant="outline" onClick={() => void refresh()}>Atualizar</Button></div>
-      {events.length === 0 ? <p className="mt-3 text-sm text-muted-foreground">Nenhum evento recebido.</p> : <div className="mt-3 space-y-2">{events.map((event) => <div key={event.id} className="flex flex-wrap justify-between gap-2 border-t border-border pt-2 text-sm"><span>{event.event_type === 'ABANDONED_CART_CREATED' ? 'Carrinho abandonado' : event.event_type} · {event.product_matched ? (event.product_name || event.object_name) : 'Produto não corresponde (possível teste)'} · {event.status || 'Sem status'}{pixOutcome(event) ? ` · ${pixOutcome(event)}` : ''}{abandonedOutcome(event) ? ` · ${abandonedOutcome(event)}` : ''}{event.pix_send_error ? ` · ${event.pix_send_error}` : ''}{event.abandoned_send_error ? ` · ${event.abandoned_send_error}` : ''}</span><span className="text-muted-foreground">{new Date(event.received_at).toLocaleString('pt-BR')}</span></div>)}</div>}
+    <section className="rounded-2xl border border-border bg-card p-5"><div className="flex items-center justify-between gap-2"><h3 className="font-semibold">Eventos recebidos</h3><Button variant="outline" disabled={eventsLoading} onClick={() => void loadEvents(eventsPage)}>Atualizar</Button></div>
+      {events.length === 0 ? <p className="mt-3 text-sm text-muted-foreground">{eventsLoading ? 'Carregando eventos…' : 'Nenhum evento recebido.'}</p> : <div className="mt-3 space-y-2">{events.map((event) => <div key={event.id} className="flex flex-wrap justify-between gap-2 border-t border-border pt-2 text-sm"><span>{event.event_type === 'ABANDONED_CART_CREATED' ? 'Carrinho abandonado' : event.event_type} · {event.product_matched ? (event.product_name || event.object_name) : 'Produto não corresponde (possível teste)'} · {event.status || 'Sem status'}{pixOutcome(event) ? ` · ${pixOutcome(event)}` : ''}{abandonedOutcome(event) ? ` · ${abandonedOutcome(event)}` : ''}{event.pix_send_error ? ` · ${event.pix_send_error}` : ''}{event.abandoned_send_error ? ` · ${event.abandoned_send_error}` : ''}</span><span className="text-muted-foreground">{new Date(event.received_at).toLocaleString('pt-BR')}</span></div>)}</div>}
+      {eventsTotal > 0 && <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4 text-sm text-muted-foreground"><span>Exibindo {(eventsPage - 1) * 10 + 1}–{Math.min(eventsPage * 10, eventsTotal)} de {eventsTotal} eventos</span><div className="flex items-center gap-2"><Button variant="outline" size="sm" disabled={eventsLoading || eventsPage === 1} onClick={() => setEventsPage((page) => page - 1)}>Anterior</Button><span>Página {eventsPage} de {Math.ceil(eventsTotal / 10)}</span><Button variant="outline" size="sm" disabled={eventsLoading || eventsPage >= Math.ceil(eventsTotal / 10)} onClick={() => setEventsPage((page) => page + 1)}>Próxima</Button></div></div>}
     </section>
   </div>
 }
