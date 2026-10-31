@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/automations/admin-client'
 import { decrypt } from '@/lib/whatsapp/encryption'
 import { parseZoutiEvent, verifyZoutiSignature } from '@/lib/zouti/webhook'
 import { pixEligible, sendZoutiPix } from '@/lib/zouti/pix-send'
+import { abandonedEligible, sendZoutiAbandoned } from '@/lib/zouti/abandoned-send'
 
 type Context = { params: Promise<{ id: string }> }
 const MAX_BODY_BYTES = 256 * 1024
@@ -15,7 +16,7 @@ export async function POST(request: Request, context: Context) {
   }
   const db = supabaseAdmin()
   const { data: integration, error: lookupError } = await db.from('zouti_integrations')
-    .select('id, account_id, product_id, enabled, pix_automation_enabled, pix_template_name').eq('id', id).maybeSingle()
+    .select('id, account_id, product_id, enabled, pix_automation_enabled, pix_template_name, abandoned_automation_enabled, abandoned_template_name').eq('id', id).maybeSingle()
   if (lookupError) return NextResponse.json({ error: 'Falha temporária.' }, { status: 503 })
   if (!integration?.enabled) return NextResponse.json({ error: 'Não encontrado.' }, { status: 404 })
   const { data: secretRow, error: secretError } = await db.from('zouti_integration_secrets')
@@ -63,9 +64,11 @@ export async function POST(request: Request, context: Context) {
   const event = parseZoutiEvent(body, request.headers, integration.product_id)
   if (!event) return NextResponse.json({ received: true, recorded: false })
   const eligible = integration.pix_automation_enabled && integration.pix_template_name && pixEligible(event, integration.product_id)
+  const abandoned = integration.abandoned_automation_enabled && integration.abandoned_template_name && abandonedEligible(event, integration.product_id)
   const { error } = await db.from('zouti_events').upsert({
     ...event, integration_id: id, account_id: integration.account_id,
     pix_send_status: eligible ? 'pending' : 'skipped',
+    abandoned_send_status: abandoned ? 'pending' : 'skipped',
   }, { onConflict: 'integration_id,event_id', ignoreDuplicates: true })
   if (error) {
     console.error('[zouti] event insert failed', { integrationId: id, code: error.code })
@@ -77,6 +80,13 @@ export async function POST(request: Request, context: Context) {
       .eq('event_id', event.event_id).eq('pix_send_status', 'pending').maybeSingle()
     if (findError) return NextResponse.json({ error: 'Falha temporária.' }, { status: 503 })
     if (saved) await sendZoutiPix(saved.id, integration.account_id, integration.pix_template_name)
+  }
+  if (abandoned) {
+    const { data: saved, error: findError } = await db.from('zouti_events')
+      .select('id').eq('integration_id', id).eq('account_id', integration.account_id)
+      .eq('event_id', event.event_id).eq('abandoned_send_status', 'pending').maybeSingle()
+    if (findError) return NextResponse.json({ error: 'Falha temporária.' }, { status: 503 })
+    if (saved) await sendZoutiAbandoned(saved.id, integration.account_id, integration.abandoned_template_name)
   }
   return NextResponse.json({ received: true, recorded: true, product_matched: event.product_matched })
 }

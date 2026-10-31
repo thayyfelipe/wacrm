@@ -30,10 +30,10 @@ const pix = {
   customer: { name: 'Cliente de teste', phone: '5511999999999', document: 'not-stored' },
   payment: { method: 'PIX', pix: { code: 'not-stored' } },
 }
-function headers(type = 'PIX_CREATED', objectId = 'ord_abc') {
+function headers(type = 'PIX_CREATED', objectId = 'ord_abc', objectName = 'Order') {
   return new Headers({
     'x-zouti-event-id': 'evt_1', 'x-zouti-event-type': type,
-    'x-zouti-object-id': objectId, 'x-zouti-object-name': 'Order',
+    'x-zouti-object-id': objectId, 'x-zouti-object-name': objectName,
   })
 }
 
@@ -49,5 +49,20 @@ describe('Zouti event mapping', () => {
     expect(parseZoutiEvent(pix, headers(), 'prod_other')).toMatchObject({ product_matched: false, customer_name: null, customer_phone: null, product_id: null })
     expect(parseZoutiEvent(pix, headers('PIX_CREATED', 'ord_different'), null)).toBeNull()
     expect(parseZoutiEvent({ ...pix, status: 'PAID' }, headers(), null)).toBeNull()
+  })
+
+  it('extracts only matching abandoned cart details and a verified Zouti link', () => {
+    const cart = {
+      id: 'ab_c_123', step: 'PAYMENT', url: 'https://pay.zouti.com.br/infoproduct_cart_token/ab_c_123',
+      items: [{ product_id: 'prod_one', name: 'Produto A' }],
+      customer: { name: 'Ana', phone: '5511999999999', document: 'secret', email: 'private@example.com' },
+    }
+    const event = parseZoutiEvent(cart, headers('ABANDONED_CART_CREATED', 'ab_c_123', 'AbandonedCart'), 'prod_one')
+    expect(event).toMatchObject({ status: 'PAYMENT', product_id: 'prod_one', abandoned_cart_url: cart.url })
+    expect(JSON.stringify(event)).not.toMatch(/secret|private@example.com/)
+    const mismatched = parseZoutiEvent(cart, headers('ABANDONED_CART_CREATED', 'ab_c_123', 'AbandonedCart'), 'other')
+    expect(mismatched).toMatchObject({ product_matched: false, customer_phone: null, abandoned_cart_url: null })
+    expect(parseZoutiEvent({ ...cart, url: 'https://evil.example/cart' }, headers('ABANDONED_CART_CREATED', 'ab_c_123', 'AbandonedCart'), 'prod_one')?.abandoned_cart_url).toBeNull()
+    expect(parseZoutiEvent(cart, headers('ABANDONED_CART_CREATED', 'ab_c_123', 'Order'), 'prod_one')).toBeNull()
   })
 })

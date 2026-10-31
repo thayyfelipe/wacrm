@@ -6,6 +6,7 @@ const event: ZoutiEvent = {
   event_id: 'evt_1', event_type: 'PIX_CREATED', object_id: 'ord_1', object_name: 'Order',
   delivery_id: null, product_id: 'prod_real', product_name: 'Curso', product_matched: true,
   status: 'AWAITING_PAYMENT', customer_name: 'Ana', customer_phone: '5511999999999',
+  abandoned_cart_url: null,
 }
 
 describe('Zouti Pix eligibility', () => {

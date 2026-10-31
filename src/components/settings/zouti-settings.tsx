@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 const ZOUTI_EVENTS = [
   { value: 'PIX_CREATED', label: 'Pix criado' },
-  { value: 'ABANDONED_CART', label: 'Carrinho abandonado' },
+  { value: 'ABANDONED_CART_CREATED', label: 'Carrinho abandonado' },
   { value: 'ORDER_CREATED', label: 'Pedido criado' },
   { value: 'ORDER_UPDATED', label: 'Pedido atualizado' },
   { value: 'ORDER_PAID', label: 'Pedido pago' },
@@ -17,10 +17,10 @@ const ZOUTI_EVENTS = [
   { value: 'SUBSCRIPTION_CREATED', label: 'Assinatura criada' },
 ] as const
 
-interface ApprovedTemplate { name: string; compatible_with_pix: boolean }
+interface ApprovedTemplate { name: string; compatible_with_pix: boolean; abandoned_variables: 2 | 3 | null }
 
-interface Integration { id: string; name: string; product_id: string | null; enabled: boolean; pix_automation_enabled: boolean; pix_template_name: string | null }
-interface Event { id: string; event_type: string; object_name: string; product_name: string | null; product_matched: boolean; status: string | null; received_at: string; pix_send_status: string | null; pix_send_error: string | null; delivery_status?: string | null; delivery_error_code?: number | null }
+interface Integration { id: string; name: string; product_id: string | null; enabled: boolean; pix_automation_enabled: boolean; pix_template_name: string | null; abandoned_automation_enabled: boolean; abandoned_template_name: string | null }
+interface Event { id: string; event_type: string; object_name: string; product_name: string | null; product_matched: boolean; status: string | null; received_at: string; pix_send_status: string | null; pix_send_error: string | null; delivery_status?: string | null; delivery_error_code?: number | null; abandoned_send_status: string | null; abandoned_send_error: string | null; abandoned_delivery_status?: string | null; abandoned_delivery_error_code?: number | null }
 
 function pixOutcome(event: Event): string | null {
   if (!event.pix_send_status || event.pix_send_status === 'skipped') return null
@@ -35,6 +35,17 @@ function pixOutcome(event: Event): string | null {
   return 'Pix: aceito pela Meta, aguardando entrega'
 }
 
+function abandonedOutcome(event: Event): string | null {
+  if (!event.abandoned_send_status || event.abandoned_send_status === 'skipped') return null
+  if (event.abandoned_send_status !== 'sent') return ({ pending: 'Carrinho: aguardando', processing: 'Carrinho: processando', failed: 'Carrinho: falha no envio' } as Record<string, string>)[event.abandoned_send_status] ?? null
+  if (event.abandoned_delivery_status === 'failed') return event.abandoned_delivery_error_code === 130497
+    ? 'Carrinho: falha na entrega — Meta restringiu esta conta para mensagens a este país (130497)'
+    : `Carrinho: falha na entrega${event.abandoned_delivery_error_code ? ` (Meta ${event.abandoned_delivery_error_code})` : ''}`
+  if (event.abandoned_delivery_status === 'read') return 'Carrinho: lido'
+  if (event.abandoned_delivery_status === 'delivered') return 'Carrinho: entregue'
+  return 'Carrinho: aceito pela Meta, aguardando entrega'
+}
+
 export function ZoutiSettings() {
   const { canEditSettings } = useAuth()
   const [integrations, setIntegrations] = useState<Integration[]>([])
@@ -43,6 +54,7 @@ export function ZoutiSettings() {
   const [productId, setProductId] = useState('')
   const [secrets, setSecrets] = useState<Record<string, string>>({})
   const [pixTemplates, setPixTemplates] = useState<Record<string, string>>({})
+  const [abandonedTemplates, setAbandonedTemplates] = useState<Record<string, string>>({})
   const [selectedEvents, setSelectedEvents] = useState<Record<string, string>>({})
   const [approvedTemplates, setApprovedTemplates] = useState<ApprovedTemplate[]>([])
   const [busy, setBusy] = useState(false)
@@ -112,9 +124,24 @@ export function ZoutiSettings() {
     finally { setBusy(false) }
   }
 
+  async function setAbandoned(integration: Integration, enabled: boolean) {
+    setBusy(true)
+    try {
+      const r = await fetch(`/api/integrations/zouti/${integration.id}/abandoned`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled, event_type: 'ABANDONED_CART_CREATED', template_name: abandonedTemplates[integration.id] ?? integration.abandoned_template_name }),
+      })
+      const payload = await r.json()
+      if (!r.ok) throw new Error(payload.error || 'Falha ao salvar envio de carrinho abandonado.')
+      await refresh()
+      toast.success(enabled ? 'Modelo de carrinho salvo para novos eventos.' : 'Envio de carrinho abandonado desativado.')
+    } catch (err) { toast.error(err instanceof Error ? err.message : 'Falha ao salvar envio de carrinho abandonado.') }
+    finally { setBusy(false) }
+  }
+
   return <div className="space-y-6">
     <div><h2 className="text-xl font-semibold text-foreground">Zouti</h2>
-      <p className="mt-1 text-sm text-muted-foreground">Receba os eventos dos produtos e configure o envio do modelo de Pix criado.</p></div>
+      <p className="mt-1 text-sm text-muted-foreground">Receba eventos dos produtos e configure modelos para Pix criado e carrinho abandonado.</p></div>
     {error && <p role="alert" className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm">{error}</p>}
     {canEditSettings && <section className="space-y-4 rounded-2xl border border-border bg-card p-5">
       <h3 className="font-semibold">Conectar webhook da Zouti</h3>
@@ -130,6 +157,8 @@ export function ZoutiSettings() {
       const eventType = selectedEvents[integration.id] ?? 'PIX_CREATED'
       const templateName = pixTemplates[integration.id] ?? integration.pix_template_name ?? ''
       const templateReady = approvedTemplates.some((template) => template.name === templateName && template.compatible_with_pix)
+      const abandonedName = abandonedTemplates[integration.id] ?? integration.abandoned_template_name ?? ''
+      const abandonedReady = approvedTemplates.some((template) => template.name === abandonedName && template.abandoned_variables)
       return <section key={integration.id} className="space-y-3 rounded-2xl border border-border bg-card p-5">
         <div className="flex justify-between gap-3"><div><h3 className="font-semibold">{integration.name}</h3><p className="text-xs text-muted-foreground">Produto: {integration.product_id || 'Todos os produtos'}</p></div><span className="text-sm text-muted-foreground">{integration.enabled ? 'Ativa' : 'Inativa'}</span></div>
         <div className="flex gap-2"><Input readOnly aria-label="URL do webhook" value={url} /><Button variant="outline" onClick={() => void navigator.clipboard.writeText(url)}>Copiar</Button></div>
@@ -148,10 +177,10 @@ export function ZoutiSettings() {
                 <SelectContent>{ZOUTI_EVENTS.map((event) => <SelectItem key={event.value} value={event.value}>{event.label}</SelectItem>)}</SelectContent>
               </Select>
             </label>
-            {eventType === 'PIX_CREATED' && <label className="space-y-1.5 text-sm"><span className="text-muted-foreground">2. Modelo aprovado para WhatsApp</span>
-              <Select value={templateName || null} onValueChange={(value) => { if (value) setPixTemplates((current) => ({ ...current, [integration.id]: value })) }} disabled={!canEditSettings}>
+            {(eventType === 'PIX_CREATED' || eventType === 'ABANDONED_CART_CREATED') && <label className="space-y-1.5 text-sm"><span className="text-muted-foreground">2. Modelo aprovado para WhatsApp</span>
+              <Select value={(eventType === 'PIX_CREATED' ? templateName : abandonedName) || null} onValueChange={(value) => { if (value) { const setter = eventType === 'PIX_CREATED' ? setPixTemplates : setAbandonedTemplates; setter((current) => ({ ...current, [integration.id]: value })) } }} disabled={!canEditSettings}>
                 <SelectTrigger aria-label="Modelo aprovado" className="w-full"><SelectValue placeholder="Escolha um modelo aprovado" /></SelectTrigger>
-                <SelectContent>{approvedTemplates.map((template) => <SelectItem key={template.name} value={template.name} disabled={!template.compatible_with_pix}>{template.name}{!template.compatible_with_pix ? ' · variáveis incompatíveis' : ''}</SelectItem>)}</SelectContent>
+                <SelectContent>{approvedTemplates.map((template) => { const compatible = eventType === 'PIX_CREATED' ? template.compatible_with_pix : Boolean(template.abandoned_variables); return <SelectItem key={template.name} value={template.name} disabled={!compatible}>{template.name}{!compatible ? ' · variáveis incompatíveis' : ''}</SelectItem> })}</SelectContent>
               </Select>
             </label>}
           </div>
@@ -162,12 +191,19 @@ export function ZoutiSettings() {
               <Button disabled={busy || !integration.enabled || !integration.product_id || !templateReady} onClick={() => void setPix(integration, true)}>{integration.pix_automation_enabled ? 'Salvar modelo' : 'Salvar e ativar envio'}</Button>
               {integration.pix_automation_enabled && <Button variant="outline" disabled={busy} onClick={() => void setPix(integration, false)}>Desativar envio</Button>}
             </div>}
+          </> : eventType === 'ABANDONED_CART_CREATED' ? <>
+            <p className="text-xs text-muted-foreground">Carrinho abandonado · {integration.abandoned_automation_enabled ? 'envio ativo' : 'envio desativado'}. Variáveis: {'{{1}}'} nome, {'{{2}}'} produto e {'{{3}}'} link do carrinho, se constar no modelo. Modelos com link exigem uma URL válida da Zouti no evento. Apenas eventos novos são enviados; falhas não geram reenvio automático.</p>
+            {approvedTemplates.length === 0 && <p className="text-xs text-muted-foreground">Nenhum modelo pt_BR aprovado nesta conta.</p>}
+            {canEditSettings && <div className="flex flex-wrap gap-2">
+              <Button disabled={busy || !integration.enabled || !integration.product_id || !abandonedReady} onClick={() => void setAbandoned(integration, true)}>{integration.abandoned_automation_enabled ? 'Salvar modelo' : 'Salvar e ativar envio'}</Button>
+              {integration.abandoned_automation_enabled && <Button variant="outline" disabled={busy} onClick={() => void setAbandoned(integration, false)}>Desativar envio</Button>}
+            </div>}
           </> : <p className="text-sm text-muted-foreground">O envio automático para este evento ainda não está disponível. A conexão continua registrando os eventos recebidos.</p>}
         </div>
       </section>
     })}
     <section className="rounded-2xl border border-border bg-card p-5"><div className="flex items-center justify-between gap-2"><h3 className="font-semibold">Eventos recebidos</h3><Button variant="outline" onClick={() => void refresh()}>Atualizar</Button></div>
-      {events.length === 0 ? <p className="mt-3 text-sm text-muted-foreground">Nenhum evento recebido.</p> : <div className="mt-3 space-y-2">{events.map((event) => <div key={event.id} className="flex flex-wrap justify-between gap-2 border-t border-border pt-2 text-sm"><span>{event.event_type} · {event.product_matched ? (event.product_name || event.object_name) : 'Produto não corresponde (possível teste)'} · {event.status || 'Sem status'}{pixOutcome(event) ? ` · ${pixOutcome(event)}` : ''}{event.pix_send_error ? ` · ${event.pix_send_error}` : ''}</span><span className="text-muted-foreground">{new Date(event.received_at).toLocaleString('pt-BR')}</span></div>)}</div>}
+      {events.length === 0 ? <p className="mt-3 text-sm text-muted-foreground">Nenhum evento recebido.</p> : <div className="mt-3 space-y-2">{events.map((event) => <div key={event.id} className="flex flex-wrap justify-between gap-2 border-t border-border pt-2 text-sm"><span>{event.event_type === 'ABANDONED_CART_CREATED' ? 'Carrinho abandonado' : event.event_type} · {event.product_matched ? (event.product_name || event.object_name) : 'Produto não corresponde (possível teste)'} · {event.status || 'Sem status'}{pixOutcome(event) ? ` · ${pixOutcome(event)}` : ''}{abandonedOutcome(event) ? ` · ${abandonedOutcome(event)}` : ''}{event.pix_send_error ? ` · ${event.pix_send_error}` : ''}{event.abandoned_send_error ? ` · ${event.abandoned_send_error}` : ''}</span><span className="text-muted-foreground">{new Date(event.received_at).toLocaleString('pt-BR')}</span></div>)}</div>}
     </section>
   </div>
 }

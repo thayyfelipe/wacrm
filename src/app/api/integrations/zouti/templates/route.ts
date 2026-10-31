@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireRole, toErrorResponse } from '@/lib/auth/account'
 import { validPixTemplateBody } from '@/lib/zouti/pix-send'
+import { abandonedTemplateVariables } from '@/lib/zouti/abandoned-send'
 
 /** Account-scoped list for choosing a Meta-approved message. */
 export async function GET() {
@@ -14,6 +15,7 @@ export async function GET() {
     return NextResponse.json({ templates: (data ?? []).map((row) => ({
       name: row.name,
       compatible_with_pix: validPixTemplateBody(row.body_text),
+      abandoned_variables: abandonedTemplateVariables(row.body_text),
     })) })
   } catch (error) { return toErrorResponse(error) }
 }
