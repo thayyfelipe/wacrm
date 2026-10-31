@@ -31,6 +31,7 @@ export interface ZoutiEvent {
   status: string | null
   customer_name: string | null
   customer_phone: string | null
+  abandoned_cart_url: string | null
 }
 
 function record(value: unknown): Record<string, unknown> {
@@ -66,7 +67,13 @@ export function parseZoutiEvent(body: unknown, headers: Headers, expectedProduct
   const payment = record(root.payment)
   if (eventType === 'PIX_CREATED' &&
       (objectName !== 'Order' || root.status !== 'AWAITING_PAYMENT' || payment.method !== 'PIX')) return null
+  if (eventType === 'ABANDONED_CART_CREATED' && objectName !== 'AbandonedCart') return null
   const customer = record(root.customer)
+  const cartUrl = optional(root.url)
+  // Never persist or later send an arbitrary URL supplied by a webhook.
+  const validatedCartUrl = eventType === 'ABANDONED_CART_CREATED' && cartUrl ?
+    (() => { try { const url = new URL(cartUrl); return url.protocol === 'https:' && url.hostname === 'pay.zouti.com.br' && !url.username && !url.password ? url.href : null } catch { return null } })()
+    : null
   return {
     event_id: eventId,
     event_type: eventType,
@@ -76,8 +83,9 @@ export function parseZoutiEvent(body: unknown, headers: Headers, expectedProduct
     product_id: matched ? optional(chosen?.product_id) : null,
     product_name: matched ? optional(chosen?.name) : null,
     product_matched: matched,
-    status: optional(root.status),
+    status: optional(eventType === 'ABANDONED_CART_CREATED' ? root.step : root.status),
     customer_name: matched ? optional(customer.name) : null,
     customer_phone: matched ? optional(customer.phone) : null,
+    abandoned_cart_url: matched ? validatedCartUrl : null,
   }
 }

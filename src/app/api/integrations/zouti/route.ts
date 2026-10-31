@@ -13,7 +13,7 @@ export async function GET() {
   try {
     const ctx = await requireRole('admin')
     const { data, error } = await ctx.supabase.from('zouti_integrations')
-      .select('id, name, product_id, enabled, pix_automation_enabled, pix_template_name, created_at')
+      .select('id, name, product_id, enabled, pix_automation_enabled, pix_template_name, abandoned_automation_enabled, abandoned_template_name, created_at')
       .eq('account_id', ctx.accountId).order('created_at', { ascending: false })
     if (error) return dbError(error)
     return NextResponse.json({ integrations: data })
