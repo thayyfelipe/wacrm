@@ -35,7 +35,6 @@ interface AudienceConfig {
   customField?: CustomFieldFilter;
   csvContacts?: { phone: string; name?: string }[];
   excludeTagIds?: string[];
-  excludePreviouslySent?: boolean;
 }
 
 interface Step2Props {
@@ -152,7 +151,6 @@ export function Step2SelectAudience({
           customField: audience.customField,
           csvContacts: audience.csvContacts,
           excludeTagIds: audience.excludeTagIds,
-          excludePreviouslySent: audience.excludePreviouslySent,
         }),
       );
     } catch {
@@ -166,7 +164,6 @@ export function Step2SelectAudience({
     audience.customField,
     audience.csvContacts,
     audience.excludeTagIds,
-    audience.excludePreviouslySent,
   ]);
 
   useEffect(() => {
@@ -429,16 +426,7 @@ export function Step2SelectAudience({
 
       {/* Exclude list — applies regardless of audience type */}
       <div className="rounded-xl border border-border bg-card/50 p-4">
-        <div className="mb-4 space-y-2 border-b border-border pb-4">
-          <p className="text-sm font-medium text-foreground">Exclusão sugerida pelo histórico</p>
-          {audience.excludePreviouslySent ? <button type="button" aria-label="Remover exclusão de contatos de disparos anteriores"
-            onClick={() => onUpdate({ ...audience, excludePreviouslySent: false })}
-            className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-medium text-foreground">
-            Contatos de disparos anteriores <X className="size-3.5" />
-          </button> : <Button type="button" variant="outline" size="sm" onClick={() => onUpdate({ ...audience, excludePreviouslySent: true })}>Excluir contatos de disparos anteriores</Button>}
-          <p className="text-xs text-muted-foreground">Exclui quem já teve uma mensagem de campanha aceita pela Meta nesta conta, mesmo com outro modelo. Pendentes e falhas sem confirmação de envio continuam elegíveis. Remova a exclusão para permitir um novo envio.</p>
-          <p className="text-xs text-muted-foreground">O filtro considera cada contato, sem excluir toda a tag: quem ainda não recebeu no mesmo lote continua disponível.</p>
-        </div>
+        <p className="mb-3 text-xs text-muted-foreground">Tags usadas como público em disparos anteriores já vêm marcadas abaixo. Desmarque qualquer uma para permitir o envio nessa nova ação.</p>
         <div className="mb-3 flex items-center gap-2">
           <X className="h-4 w-4 text-red-400" />
           <p className="text-sm font-medium text-foreground">

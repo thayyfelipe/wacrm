@@ -2,7 +2,6 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { fetchAllInChunks, fetchAllPages } from '@/lib/supabase/paged-query';
 import type { Contact } from '@/types';
-import { normalizeKey } from '@/lib/contacts/dedupe';
 
 export type CustomFieldOperator = 'is' | 'is_not' | 'contains';
 
@@ -25,7 +24,6 @@ export interface AudienceConfig {
   customField?: CustomFieldFilter;
   csvContacts?: CsvAudienceRow[];
   excludeTagIds?: string[];
-  excludePreviouslySent?: boolean;
 }
 
 async function withContext<T>(label: string, run: () => Promise<T>): Promise<T> {
@@ -99,23 +97,10 @@ async function fetchExcludedIds(
   db: SupabaseClient,
   audience: AudienceConfig,
 ): Promise<Set<string>> {
-  const [tagged, previous] = await Promise.all([
-    audience.excludeTagIds?.length ? fetchTaggedContactIds(db, audience.excludeTagIds) : Promise.resolve(new Set<string>()),
-    audience.excludePreviouslySent ? fetchPreviouslySentContactIds(db) : Promise.resolve(new Set<string>()),
-  ]);
-  return new Set([...tagged, ...previous]);
-}
-
-/** Client uses account-scoped RLS on both broadcasts and recipient rows. */
-export async function fetchPreviouslySentContactIds(db: SupabaseClient): Promise<Set<string>> {
-  return withContext('previous broadcast recipients', async () => {
-    const rows = await fetchAllPages<{ contact_id: string | null }>((from, to) => db
-      .from('broadcast_recipients')
-      .select('contact_id, broadcasts!inner(id)')
-      .or('status.in.(sent,delivered,read,replied),whatsapp_message_id.not.is.null')
-      .order('id').range(from, to));
-    return new Set(rows.flatMap((row) => row.contact_id ? [row.contact_id] : []));
-  });
+  if (!audience.excludeTagIds || audience.excludeTagIds.length === 0) {
+    return new Set();
+  }
+  return fetchTaggedContactIds(db, audience.excludeTagIds);
 }
 
 function hasCustomFieldFilter(
@@ -165,14 +150,9 @@ export async function countAudience(
   audience: AudienceConfig,
 ): Promise<number | null> {
   if (audience.type === 'csv') {
-    if (!audience.csvContacts?.length) return null;
-    const keys = [...new Set(audience.csvContacts.map((row) => normalizeKey(row.phone)).filter(Boolean))];
-    const excluded = await fetchExcludedIds(db, audience);
-    if (excluded.size === 0) return keys.length;
-    const existing = await fetchAllInChunks<{ id: string; phone_normalized: string }, string>(keys, (slice, from, to) => db
-      .from('contacts').select('id, phone_normalized').in('phone_normalized', slice).order('id').range(from, to));
-    const excludedKeys = new Set(existing.filter((contact) => excluded.has(contact.id)).map((contact) => contact.phone_normalized));
-    return keys.filter((key) => !excludedKeys.has(key)).length;
+    return audience.csvContacts && audience.csvContacts.length > 0
+      ? audience.csvContacts.length
+      : null;
   }
 
   if (audience.type === 'all') {

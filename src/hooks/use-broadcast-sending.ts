@@ -316,7 +316,6 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
             tagIds: payload.audience.tagIds,
             customField: payload.audience.customField,
             excludeTagIds: payload.audience.excludeTagIds,
-            excludePreviouslySent: payload.audience.excludePreviouslySent,
           },
           status: 'sending',
           total_recipients: contacts.length,

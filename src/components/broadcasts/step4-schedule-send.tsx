@@ -80,11 +80,6 @@ export function Step4ScheduleSend({
       </div>
 
       {/* Broadcast Name */}
-      <p className="rounded-xl border border-border bg-card p-3 text-sm text-muted-foreground">
-        {audience.excludePreviouslySent
-          ? 'Contatos de disparos anteriores serão excluídos, mesmo que o modelo seja diferente. Para permitir novo envio a eles, remova a exclusão na etapa Público.'
-          : 'A exclusão pelo histórico está desativada: contatos de disparos anteriores poderão receber novamente.'}
-      </p>
       <div>
         <label className="mb-1.5 block text-sm font-medium text-foreground">{t('scheduleSend.broadcastName')}</label>
         <Input
