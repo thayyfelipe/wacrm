@@ -63,6 +63,11 @@ function cappedPostgrest(tables: Record<string, Row[]>) {
           filters.push((row) => allowed.has(row[col]));
           return builder;
         },
+        or(expression: string) {
+          expect(expression).toBe('status.in.(sent,delivered,read,replied),whatsapp_message_id.not.is.null');
+          filters.push((row) => ['sent', 'delivered', 'read', 'replied'].includes(String(row.status)) || row.whatsapp_message_id != null);
+          return builder;
+        },
         order(col: string) {
           orderBy = col;
           return builder;
@@ -127,6 +132,43 @@ function tagRows(contactRows: Row[], tagId: string, prefix: string): Row[] {
 }
 
 const noCsv = async (): Promise<Contact[]> => [];
+
+describe('suggested previous-send exclusion', () => {
+  it('handles 5000 contacts and pages history, keeping pending and unsent failures', async () => {
+    const all = contacts(5000);
+    const history: Row[] = all.slice(0, 2300).map((contact, index) => ({ id: uuid('r', index), contact_id: contact.id, status: index < 2200 ? 'sent' : 'failed', whatsapp_message_id: null }));
+    history.push({ id: uuid('r', 2300), contact_id: all[2300].id, status: 'pending', whatsapp_message_id: null });
+    // Meta accepted this send but later reported a delivery failure. Do not send it again by default.
+    history.push({ id: uuid('r', 2301), contact_id: all[2301].id, status: 'failed', whatsapp_message_id: 'wamid.accepted' });
+    const { db } = cappedPostgrest({ contacts: all, broadcast_recipients: history });
+    const selected = await resolveAudienceContacts(db, { type: 'all', excludePreviouslySent: true }, noCsv);
+    expect(selected).toHaveLength(2799);
+    expect(selected.some((contact) => contact.id === all[2300].id)).toBe(true);
+    expect(selected.some((contact) => contact.id === all[2301].id)).toBe(false);
+    expect(await countAudience(db, { type: 'all', excludePreviouslySent: true })).toBe(selected.length);
+    expect(await resolveAudienceContacts(db, { type: 'all', excludePreviouslySent: false }, noCsv)).toHaveLength(5000);
+  });
+
+  it('unions history and manual tag exclusions without double subtraction', async () => {
+    const all = contacts(10);
+    const { db } = cappedPostgrest({ contacts: all,
+      broadcast_recipients: [{ id: 'r1', contact_id: all[0].id, status: 'delivered' }],
+      contact_tags: tagRows(all.slice(0, 3), 'exclude', 't'),
+    });
+    const audience: AudienceConfig = { type: 'all', excludePreviouslySent: true, excludeTagIds: ['exclude'] };
+    expect(await countAudience(db, audience)).toBe(7);
+    expect(await resolveAudienceContacts(db, audience, noCsv)).toHaveLength(7);
+  });
+
+  it('counts a CSV by normalized phones with exclusions, without inserting contacts', async () => {
+    const { db } = cappedPostgrest({ contacts: [{ id: 'c1', phone_normalized: '5511999999999' }],
+      broadcast_recipients: [{ id: 'r1', contact_id: 'c1', status: 'read' }],
+    });
+    expect(await countAudience(db, { type: 'csv', excludePreviouslySent: true, csvContacts: [
+      { phone: '+55 (11) 99999-9999' }, { phone: '+5511999999999' }, { phone: '+5511988888888' },
+    ] })).toBe(1);
+  });
+});
 
 describe('resolveAudienceContacts', () => {
   it('returns every contact for "all" beyond the 1000-row cap', async () => {

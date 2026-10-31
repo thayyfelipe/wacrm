@@ -39,7 +39,8 @@ export default function NewBroadcastPage() {
     };
     csvContacts?: { phone: string; name?: string }[];
     excludeTagIds?: string[];
-  }>({ type: 'all' });
+    excludePreviouslySent?: boolean;
+  }>({ type: 'all', excludePreviouslySent: true });
   const [variables, setVariables] = useState<
     Record<string, { type: 'static' | 'field' | 'custom_field'; value: string }>
   >({});
@@ -59,6 +60,7 @@ export default function NewBroadcastPage() {
           customField: audience.customField,
           csvContacts: audience.csvContacts,
           excludeTagIds: audience.excludeTagIds,
+          excludePreviouslySent: audience.excludePreviouslySent,
         },
         variables,
         headerMediaUrl,
@@ -111,6 +113,8 @@ export default function NewBroadcastPage() {
       audience_filter: {
         type: audience.type,
         tagIds: audience.tagIds,
+        excludeTagIds: audience.excludeTagIds,
+        excludePreviouslySent: audience.excludePreviouslySent,
       },
       status: 'draft',
       total_recipients: 0,
