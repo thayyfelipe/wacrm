@@ -262,6 +262,9 @@ vi.mock('@/lib/contacts/dedupe', () => ({
 vi.mock('@/lib/whatsapp/webhook-signature', () => ({
   verifyMetaWebhookSignature: () => true,
 }))
+vi.mock('@/lib/whatsapp/account-webhook-signature', () => ({
+  verifyAccountWebhookSignature: async () => true,
+}))
 vi.mock('@/lib/whatsapp/template-webhook', () => ({
   isTemplateWebhookField: (field: string) =>
     field.startsWith('message_template_'),

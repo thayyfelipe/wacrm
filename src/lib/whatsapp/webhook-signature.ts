@@ -39,7 +39,7 @@ export function parseAppSecrets(raw: string | undefined): string[] {
     .filter((s) => s.length > 0)
 }
 
-function signatureMatches(rawBody: string, signatureHeader: string, secret: string): boolean {
+export function signatureMatches(rawBody: string, signatureHeader: string, secret: string): boolean {
   const expected =
     'sha256=' +
     crypto.createHmac('sha256', secret).update(rawBody).digest('hex')
