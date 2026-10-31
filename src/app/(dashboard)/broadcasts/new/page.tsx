@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
@@ -11,7 +11,8 @@ import { Step2SelectAudience } from '@/components/broadcasts/step2-select-audien
 import { Step3Personalize } from '@/components/broadcasts/step3-personalize';
 import { Step4ScheduleSend } from '@/components/broadcasts/step4-schedule-send';
 import { useBroadcastSending } from '@/hooks/use-broadcast-sending';
-import { Check } from 'lucide-react';
+import { Check, Loader2 } from 'lucide-react';
+import { loadPreviousAudienceTagIds } from '@/lib/broadcast-tag-suggestions';
 import { useTranslations } from 'next-intl';
 
 const steps = [
@@ -39,13 +40,29 @@ export default function NewBroadcastPage() {
     };
     csvContacts?: { phone: string; name?: string }[];
     excludeTagIds?: string[];
-    excludePreviouslySent?: boolean;
-  }>({ type: 'all', excludePreviouslySent: true });
+  }>({ type: 'all' });
   const [variables, setVariables] = useState<
     Record<string, { type: 'static' | 'field' | 'custom_field'; value: string }>
   >({});
   const [headerMediaUrl, setHeaderMediaUrl] = useState('');
   const [name, setName] = useState('');
+  const [suggestionsAccountId, setSuggestionsAccountId] = useState<string | null>(null);
+
+  // Load only when starting this wizard. Going back, choosing a new model,
+  // or removing a suggested tag must never reapply a user's exclusions.
+  useEffect(() => {
+    if (!accountId) return;
+    let active = true;
+    loadPreviousAudienceTagIds(createClient(), accountId)
+      .then((ids) => {
+        if (active) setAudience((current) => ({ ...current, excludeTagIds: ids }));
+      })
+      .catch(() => {
+        if (active) toast.error('Não foi possível carregar as tags de disparos anteriores. Confira as exclusões manualmente.');
+      })
+      .finally(() => { if (active) setSuggestionsAccountId(accountId); });
+    return () => { active = false; };
+  }, [accountId]);
 
   async function handleSend() {
     if (!template) return;
@@ -60,7 +77,6 @@ export default function NewBroadcastPage() {
           customField: audience.customField,
           csvContacts: audience.csvContacts,
           excludeTagIds: audience.excludeTagIds,
-          excludePreviouslySent: audience.excludePreviouslySent,
         },
         variables,
         headerMediaUrl,
@@ -114,7 +130,6 @@ export default function NewBroadcastPage() {
         type: audience.type,
         tagIds: audience.tagIds,
         excludeTagIds: audience.excludeTagIds,
-        excludePreviouslySent: audience.excludePreviouslySent,
       },
       status: 'draft',
       total_recipients: 0,
@@ -132,6 +147,8 @@ export default function NewBroadcastPage() {
     toast.success(t('toastDraftSaved'));
     router.push('/broadcasts');
   }
+
+  if (!accountId || suggestionsAccountId !== accountId) return <div className="flex items-center gap-2 p-6 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" />Preparando sugestões de tags excluídas...</div>;
 
   return (
     <div className="mx-auto max-w-3xl space-y-8">
