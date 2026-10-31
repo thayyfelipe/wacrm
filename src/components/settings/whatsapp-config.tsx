@@ -32,6 +32,7 @@ import {
   AccordionContent,
 } from '@/components/ui/accordion';
 import type { WhatsAppConfig as WhatsAppConfigType } from '@/types';
+import { MetaAppSecret } from './meta-app-secret';
 
 const MASKED_TOKEN = '••••••••••••••••';
 
@@ -549,6 +550,7 @@ export function WhatsAppConfig() {
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
       {/* Main config form */}
       <div className="space-y-6">
+        {accountId && canEditSettings && <MetaAppSecret accountId={accountId} />}
         {/* Corrupted-token reset banner */}
         {showResetBanner && (
           <Alert className="bg-amber-950/40 border-amber-600/40">
