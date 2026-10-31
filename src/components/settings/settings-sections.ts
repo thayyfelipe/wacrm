@@ -33,6 +33,7 @@ export const SETTINGS_SECTIONS = [
   'deals',
   'members',
   'api',
+  'integrations',
   'kiwify',
   'zouti',
 ] as const;
@@ -61,6 +62,7 @@ export const SECTION_META: Record<SettingsSection, SectionMeta> = {
   deals: { id: 'deals', label: 'Deals & currency', icon: Coins, group: 'workspace' },
   members: { id: 'members', label: 'Team members', icon: UsersRound, group: 'workspace' },
   api: { id: 'api', label: 'API keys', icon: KeyRound, group: 'workspace' },
+  integrations: { id: 'integrations', label: 'Integrações', icon: PlugZap, group: 'workspace' },
   kiwify: { id: 'kiwify', label: 'Kiwify', icon: PlugZap, group: 'workspace' },
   zouti: { id: 'zouti', label: 'Zouti', icon: PlugZap, group: 'workspace' },
 };

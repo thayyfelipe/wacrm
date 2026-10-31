@@ -20,6 +20,7 @@ import { MembersTab } from '@/components/settings/members-tab';
 import { ApiKeysSettings } from '@/components/settings/api-keys-settings';
 import { KiwifySettings } from '@/components/settings/kiwify-settings';
 import { ZoutiSettings } from '@/components/settings/zouti-settings';
+import { IntegrationsPanel } from '@/components/settings/integrations-panel';
 import {
   resolveSection,
   type SettingsSection,
@@ -83,6 +84,7 @@ function SettingsPageInner() {
     deals: <DealsSettings />,
     members: <MembersTab />,
     api: <ApiKeysSettings />,
+    integrations: <IntegrationsPanel onSelect={go} />,
     kiwify: <KiwifySettings />,
     zouti: <ZoutiSettings />,
   };
@@ -100,7 +102,12 @@ function SettingsPageInner() {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[236px_minmax(0,1fr)] lg:items-start">
         <SettingsRail active={section} onSelect={go} hints={hints} />
-        <div className="min-w-0">{panel[section]}</div>
+        <div className="min-w-0">
+          {(section === 'kiwify' || section === 'zouti') && (
+            <button type="button" onClick={() => go('integrations')} className="mb-4 text-sm font-medium text-primary hover:underline">← {t('sections.integrations')}</button>
+          )}
+          {panel[section]}
+        </div>
       </div>
     </div>
   );
