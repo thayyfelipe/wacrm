@@ -57,7 +57,7 @@ export function SettingsRail({
     >
       {RAIL_GROUPS.map(({ label, group }) => {
         const items = SETTINGS_SECTIONS.filter(
-          (s) => SECTION_META[s].group === group,
+          (s) => SECTION_META[s].group === group && s !== 'kiwify' && s !== 'zouti',
         );
         return (
           <div
@@ -72,7 +72,7 @@ export function SettingsRail({
             {items.map((s) => {
               const meta = SECTION_META[s];
               const Icon = meta.icon;
-              const isActive = s === active;
+              const isActive = s === active || (s === 'integrations' && (active === 'kiwify' || active === 'zouti'));
               return (
                 <button
                   key={s}

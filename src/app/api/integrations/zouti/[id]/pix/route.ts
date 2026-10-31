@@ -10,6 +10,9 @@ export async function PATCH(request: Request, context: Context) {
     const { id } = await context.params
     const body = await request.json().catch(() => null)
     if (typeof body?.enabled !== 'boolean') return NextResponse.json({ error: 'Opção inválida.' }, { status: 400 })
+    if (body.enabled && body.event_type !== 'PIX_CREATED') {
+      return NextResponse.json({ error: 'O envio de mensagens está disponível para Pix criado nesta etapa.' }, { status: 400 })
+    }
     const templateName = typeof body?.template_name === 'string' ? body.template_name.trim() : ''
     const { data: integration, error: lookupError } = await ctx.supabase.from('zouti_integrations')
       .select('id, enabled, product_id').eq('id', id).eq('account_id', ctx.accountId).maybeSingle()

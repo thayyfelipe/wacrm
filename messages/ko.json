@@ -1828,7 +1828,9 @@
       "deals": "딜 & 통화",
       "members": "팀원",
       "api": "API 키",
-      "kiwify": "Kiwify"
+      "kiwify": "Kiwify",
+      "zouti": "Zouti",
+      "integrations": "통합"
     },
     "groups": {
       "account": "계정",

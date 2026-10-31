@@ -1828,7 +1828,9 @@
       "deals": "Deals & currency",
       "members": "Team members",
       "api": "API keys",
-      "kiwify": "Kiwify"
+      "kiwify": "Kiwify",
+      "zouti": "Zouti",
+      "integrations": "Integrations"
     },
     "groups": {
       "account": "Account",
