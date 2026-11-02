@@ -12,17 +12,19 @@
 //   only slow the per-request auth lookup. A fast hash with a UNIQUE
 //   index is the correct, indexable choice for opaque secrets.
 //
-// Why the `wacrm_live_` prefix
+// Why the `elooflow_live_` prefix
 //   - Self-identifying: a leaked string is instantly recognisable as
-//     a wacrm key (handy for secret-scanners like GitGuardian).
-//   - Forward-compatible: leaves room for a `wacrm_test_` variant if
+//     an ElooFlow key (handy for secret-scanners like GitGuardian).
+//   - Forward-compatible: leaves room for an `elooflow_test_` variant if
 //     a sandbox mode is ever added, without reshaping the format.
+//   - Existing `wacrm_live_` keys remain valid until explicitly revoked.
 // ============================================================
 
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 
 /** Secret prefix on every key. Part of the plaintext, not a secret. */
-export const API_KEY_PREFIX = 'wacrm_live_';
+export const API_KEY_PREFIX = 'elooflow_live_';
+export const LEGACY_API_KEY_PREFIX = 'wacrm_live_';
 
 /**
  * Length of the non-secret display prefix stored in `key_prefix` and
@@ -73,8 +75,8 @@ export function hashApiKey(plaintext: string): string {
  * malformed `Authorization` headers (e.g. a stale invite token).
  */
 export function looksLikeApiKey(value: string): boolean {
-  return (
-    value.startsWith(API_KEY_PREFIX) && value.length > API_KEY_PREFIX.length
+  return [API_KEY_PREFIX, LEGACY_API_KEY_PREFIX].some(
+    (prefix) => value.startsWith(prefix) && value.length > prefix.length,
   );
 }
 

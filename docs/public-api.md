@@ -14,8 +14,12 @@ Every request authenticates with an **API key**, sent as a bearer
 token:
 
 ```
-Authorization: Bearer wacrm_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+Authorization: Bearer elooflow_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
+
+Keys issued before the ElooFlow prefix change (`wacrm_live_`) continue to
+authenticate unchanged until revoked. Generate a new key only if you want
+its visible prefix to reflect the new brand.
 
 Keys are **account-scoped**: a key acts on exactly one account, the
 one it was created in. There is no cross-account access.
@@ -103,7 +107,7 @@ and to discover its scopes.
 
 ```bash
 curl https://your-crm.example.com/api/v1/me \
-  -H "Authorization: Bearer wacrm_live_xxx"
+  -H "Authorization: Bearer elooflow_live_xxx"
 ```
 
 ```json
@@ -130,7 +134,7 @@ deliver to +41, Switzerland), so it doesn't guess.
 
 ```bash
 curl -X POST https://your-crm.example.com/api/v1/messages \
-  -H "Authorization: Bearer wacrm_live_xxx" \
+  -H "Authorization: Bearer elooflow_live_xxx" \
   -H "Content-Type: application/json" \
   -d '{ "to": "+14155550123", "type": "text", "text": "Hi 👋" }'
 ```
@@ -236,7 +240,7 @@ returns fast — poll `GET /api/v1/broadcasts/{id}` for progress.
 
 ```bash
 curl -X POST https://your-crm.example.com/api/v1/broadcasts \
-  -H "Authorization: Bearer wacrm_live_xxx" \
+  -H "Authorization: Bearer elooflow_live_xxx" \
   -H "Content-Type: application/json" \
   -d '{
         "name": "July promo",
@@ -316,7 +320,7 @@ All under scope `webhooks:manage`.
 
 ```bash
 curl -X POST https://your-crm.example.com/api/v1/webhooks \
-  -H "Authorization: Bearer wacrm_live_xxx" \
+  -H "Authorization: Bearer elooflow_live_xxx" \
   -H "Content-Type: application/json" \
   -d '{ "url": "https://example.com/hooks/wacrm", "events": ["message.received"] }'
 # → 201 { "data": { "id": "…", "url": "…", "events": [...], "secret": "whsec_…" } }

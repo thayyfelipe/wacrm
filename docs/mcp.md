@@ -29,7 +29,7 @@ other API call.
          "args": ["-y", "wacrm-mcp"],
          "env": {
            "WACRM_BASE_URL": "https://crm.example.com",
-           "WACRM_API_KEY": "wacrm_live_xxxxxxxxxxxxxxxxxxxxxxxx"
+           "WACRM_API_KEY": "elooflow_live_xxxxxxxxxxxxxxxxxxxxxxxx"
          }
        }
      }

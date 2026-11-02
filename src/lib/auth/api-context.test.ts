@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { generateApiKey } from "@/lib/api-keys/keys";
+import { generateApiKey, hashApiKey, LEGACY_API_KEY_PREFIX } from "@/lib/api-keys/keys";
 import type { ApiKeyRow } from "@/lib/api-keys/store";
 import { ApiError } from "@/lib/api/v1/respond";
 import { __resetRateLimitForTests, RATE_LIMITS } from "@/lib/rate-limit";
@@ -68,7 +68,7 @@ describe("requireApiKey", () => {
     expect(findActiveKeyByHash).not.toHaveBeenCalled();
   });
 
-  it("401s on a token that doesn't look like a wacrm key", async () => {
+  it("401s on a token that doesn't look like an ElooFlow key", async () => {
     await expectApiError(
       requireApiKey(reqWith("Bearer some-invite-token")),
       "unauthorized",
@@ -94,6 +94,14 @@ describe("requireApiKey", () => {
     expect(ctx.keyId).toBe("key-1");
     expect(ctx.scopes).toEqual(["messages:send"]);
     expect(touchLastUsed).toHaveBeenCalledWith("key-1");
+  });
+
+  it("authenticates an existing wacrm_live_ key using its unchanged hash", async () => {
+    const legacyKey = `${LEGACY_API_KEY_PREFIX}previously-issued-key`;
+    findActiveKeyByHash.mockResolvedValue(row());
+    const ctx = await requireApiKey(reqWith(`Bearer ${legacyKey}`));
+    expect(ctx.accountId).toBe("acct-1");
+    expect(findActiveKeyByHash).toHaveBeenCalledWith(hashApiKey(legacyKey));
   });
 
   it("accepts a bare key without the 'Bearer ' prefix", async () => {

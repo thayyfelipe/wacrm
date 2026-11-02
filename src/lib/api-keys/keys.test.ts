@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   API_KEY_PREFIX,
+  LEGACY_API_KEY_PREFIX,
   generateApiKey,
   hashApiKey,
   looksLikeApiKey,
@@ -46,6 +47,11 @@ describe('hashApiKey', () => {
 describe('looksLikeApiKey', () => {
   it('accepts a well-formed key', () => {
     expect(looksLikeApiKey(generateApiKey().plaintext)).toBe(true);
+  });
+
+  it('continues accepting keys issued with the original prefix', () => {
+    expect(looksLikeApiKey(`${LEGACY_API_KEY_PREFIX}previously-issued-key`)).toBe(true);
+    expect(looksLikeApiKey(LEGACY_API_KEY_PREFIX)).toBe(false);
   });
 
   it('rejects the bare prefix, empty, and foreign tokens', () => {
