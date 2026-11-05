@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { createHash } from 'node:crypto'
 import { supabaseAdmin } from '@/lib/automations/admin-client'
 import { decrypt } from '@/lib/whatsapp/encryption'
 import { parseApprovedSale, verifyKiwifySignature } from '@/lib/kiwify/signature'
@@ -45,6 +46,27 @@ export async function POST(request: Request, context: Context) {
   try { token = decrypt(secret.token_encrypted) } catch { return NextResponse.json({ error: 'Falha temporária' }, { status: 503 }) }
   if (!verifyKiwifySignature(body, signature, token, raw)) {
     return NextResponse.json({ error: 'Assinatura inválida' }, { status: 401 })
+  }
+  const payload = body && typeof body === 'object' && !Array.isArray(body) ? body as Record<string, unknown> : {}
+  const product = payload.Product && typeof payload.Product === 'object' && !Array.isArray(payload.Product)
+    ? payload.Product as Record<string, unknown> : {}
+  const field = (value: unknown, max = 200) => typeof value === 'string' && value.trim()
+    ? value.trim().slice(0, max) : null
+  const productId = field(product.product_id)
+  const { error: eventError } = await db.from('kiwify_events').upsert({
+    integration_id: id,
+    account_id: integration.account_id,
+    event_type: field(payload.webhook_event_type, 100) ?? 'unknown',
+    order_id: field(payload.order_id),
+    product_id: productId,
+    product_name: field(product.product_name),
+    order_status: field(payload.order_status, 100),
+    product_matched: productId === integration.product_id,
+    payload_hash: createHash('sha256').update(JSON.stringify(body)).digest('hex'),
+  }, { onConflict: 'integration_id,payload_hash', ignoreDuplicates: true })
+  if (eventError) {
+    console.error('[kiwify] event insert failed', { integrationId: id, code: eventError.code })
+    return NextResponse.json({ error: 'Falha temporária' }, { status: 503 })
   }
   const sale = parseApprovedSale(body)
   if (!sale) return NextResponse.json({ received: true, recorded: false })
