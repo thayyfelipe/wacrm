@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const state = vi.hoisted(() => ({
   inserts: [] as Array<Record<string, unknown>>,
+  events: [] as Array<Record<string, unknown>>,
   seen: new Set<string>(),
 }))
 
@@ -19,6 +20,11 @@ vi.mock('@/lib/automations/admin-client', () => ({
           error: null,
         }),
         upsert: async (row: Record<string, unknown>, options: { onConflict: string; ignoreDuplicates: boolean }) => {
+          if (table === 'kiwify_events') {
+            expect(options).toEqual({ onConflict: 'integration_id,payload_hash', ignoreDuplicates: true })
+            if (!state.events.some((event) => event.payload_hash === row.payload_hash)) state.events.push(row)
+            return { error: null }
+          }
           expect(options).toEqual({ onConflict: 'account_id,order_id', ignoreDuplicates: true })
           const key = `${row.account_id}:${row.order_id}`
           if (!state.seen.has(key)) {
@@ -56,11 +62,12 @@ async function send(payload: unknown, signed = true) {
 }
 
 describe('Kiwify webhook tenant and sale guards', () => {
-  beforeEach(() => { state.inserts.length = 0; state.seen.clear() })
+  beforeEach(() => { state.inserts.length = 0; state.events.length = 0; state.seen.clear() })
 
   it('rejects invalid signatures before any write', async () => {
     expect((await send(sale, false)).status).toBe(401)
     expect(state.inserts).toHaveLength(0)
+    expect(state.events).toHaveLength(0)
   })
 
   it('acknowledges Kiwify example products without recording a false sale', async () => {
@@ -68,6 +75,7 @@ describe('Kiwify webhook tenant and sale guards', () => {
     expect(response.status).toBe(200)
     expect(await response.json()).toMatchObject({ recorded: false })
     expect(state.inserts).toHaveLength(0)
+    expect(state.events[0]).toMatchObject({ product_matched: false })
   })
 
   it('stamps the integration account, omits card/CPF and ignores a duplicate delivery', async () => {
@@ -76,5 +84,14 @@ describe('Kiwify webhook tenant and sale guards', () => {
     expect(state.inserts).toHaveLength(1)
     expect(state.inserts[0]).toMatchObject({ account_id: 'account-A', product_id: 'product-A', order_id: 'order-1' })
     expect(JSON.stringify(state.inserts[0])).not.toMatch(/CPF|1234/)
+    expect(state.events).toHaveLength(1)
+    expect(JSON.stringify(state.events[0])).not.toMatch(/CPF|1234/)
+  })
+
+  it('records a Pix event without creating a sale or sending a message', async () => {
+    const response = await send({ ...sale, webhook_event_type: 'pix_generated', order_status: 'waiting_payment' })
+    expect(response.status).toBe(200)
+    expect(state.inserts).toHaveLength(0)
+    expect(state.events[0]).toMatchObject({ event_type: 'pix_generated', order_status: 'waiting_payment', product_matched: true })
   })
 })
