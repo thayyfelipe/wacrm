@@ -58,7 +58,7 @@ import { useCan } from '@/hooks/use-can';
 import { GatedButton } from '@/components/ui/gated-button';
 import { useTranslations } from 'next-intl';
 
-const DEFAULT_PAGE_SIZE = 100;
+const DEFAULT_PAGE_SIZE = 25;
 
 interface ContactWithTags extends Contact {
   tags?: Tag[];
@@ -518,6 +518,7 @@ export default function ContactsPage() {
         <label className="flex items-center gap-2 text-sm text-muted-foreground">
           Contatos por página
           <select aria-label="Contatos por página" className="rounded-md border border-border bg-card px-2 py-1.5 text-foreground" value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(0); setSelected(new Set()); }}>
+            <option value={25}>25</option>
             <option value={100}>100</option>
             <option value={500}>500</option>
           </select>
@@ -526,6 +527,7 @@ export default function ContactsPage() {
       {!canEditSettings && <label className="flex items-center justify-end gap-2 text-sm text-muted-foreground">
         Contatos por página
         <select aria-label="Contatos por página" className="rounded-md border border-border bg-card px-2 py-1.5 text-foreground" value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(0); setSelected(new Set()); }}>
+          <option value={25}>25</option>
           <option value={100}>100</option>
           <option value={500}>500</option>
         </select>
