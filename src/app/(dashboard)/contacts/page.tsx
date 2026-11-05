@@ -58,7 +58,7 @@ import { useCan } from '@/hooks/use-can';
 import { GatedButton } from '@/components/ui/gated-button';
 import { useTranslations } from 'next-intl';
 
-const PAGE_SIZE = 25;
+const DEFAULT_PAGE_SIZE = 100;
 
 interface ContactWithTags extends Contact {
   tags?: Tag[];
@@ -75,6 +75,7 @@ export default function ContactsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [totalCount, setTotalCount] = useState(0);
   // Tag filter — contacts shown must have ANY of these tags (OR).
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
@@ -127,8 +128,8 @@ export default function ContactsPage() {
     // act on rows the user can no longer see.
     setSelected(new Set());
 
-    const from = page * PAGE_SIZE;
-    const to = from + PAGE_SIZE - 1;
+    const from = page * pageSize;
+    const to = from + pageSize - 1;
     const term = search.trim();
 
     let contactRows: Contact[];
@@ -142,7 +143,7 @@ export default function ContactsPage() {
       const { data, error } = await supabase.rpc('filter_contacts_by_tags', {
         p_tag_ids: selectedTagIds,
         p_search: term || null,
-        p_limit: PAGE_SIZE,
+        p_limit: pageSize,
         p_offset: from,
       });
       if (seq !== fetchSeq.current) return; // superseded by a newer fetch
@@ -187,14 +188,22 @@ export default function ContactsPage() {
 
     // Fetch tags for these contacts
     const contactIds = contactRows.map((c) => c.id);
-    const { data: contactTags } = await supabase
-      .from('contact_tags')
-      .select('contact_id, tag_id')
-      .in('contact_id', contactIds);
+    // Keep URL/query size bounded when displaying 500 contacts.
+    const tagBatches = await Promise.all(
+      Array.from({ length: Math.ceil(contactIds.length / 100) }, (_, index) =>
+        supabase.from('contact_tags').select('contact_id, tag_id')
+          .in('contact_id', contactIds.slice(index * 100, (index + 1) * 100))
+      )
+    );
     if (seq !== fetchSeq.current) return; // superseded by a newer fetch
+    if (tagBatches.some((batch) => batch.error)) {
+      toast.error(t('toastFailedLoad'));
+      setLoading(false);
+      return;
+    }
 
     const tagsByContact: Record<string, string[]> = {};
-    contactTags?.forEach((ct) => {
+    tagBatches.flatMap((batch) => batch.data ?? []).forEach((ct) => {
       if (!tagsByContact[ct.contact_id]) tagsByContact[ct.contact_id] = [];
       tagsByContact[ct.contact_id].push(ct.tag_id);
     });
@@ -208,7 +217,7 @@ export default function ContactsPage() {
 
     setContacts(enriched);
     setLoading(false);
-  }, [supabase, page, search, selectedTagIds, tagsMap, t]);
+  }, [supabase, page, pageSize, search, selectedTagIds, tagsMap, t]);
 
   // Load-once-on-mount-ish data fetches. Each setter inside runs
   // inside an async promise completion (Supabase await), not
@@ -246,12 +255,13 @@ export default function ContactsPage() {
   }
 
   function confirmDelete(contact: Contact) {
+    if (!canEditSettings) return;
     setDeleteTarget(contact);
     setDeleteConfirmOpen(true);
   }
 
   async function handleDelete() {
-    if (!deleteTarget) return;
+    if (!deleteTarget || !canEditSettings) return;
     setDeleting(true);
 
     const { error } = await supabase
@@ -297,6 +307,7 @@ export default function ContactsPage() {
   }
 
   async function handleBulkDelete() {
+    if (!canEditSettings) return;
     const ids = [...selected];
     if (ids.length === 0) return;
     setDeleting(true);
@@ -315,7 +326,7 @@ export default function ContactsPage() {
     setBulkDeleteOpen(false);
   }
 
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+  const totalPages = Math.ceil(totalCount / pageSize);
   const hasNext = page < totalPages - 1;
   const hasPrev = page > 0;
 
@@ -500,7 +511,26 @@ export default function ContactsPage() {
       </div>
 
       {/* Bulk action bar */}
-      {selected.size > 0 && (
+      {canEditSettings && <div className="flex flex-wrap items-center justify-between gap-3">
+        <Button variant="outline" size="sm" disabled={loading || contacts.length === 0} onClick={toggleSelectAll}>
+          {allOnPageSelected ? 'Desmarcar página' : 'Selecionar todos desta página'}
+        </Button>
+        <label className="flex items-center gap-2 text-sm text-muted-foreground">
+          Contatos por página
+          <select aria-label="Contatos por página" className="rounded-md border border-border bg-card px-2 py-1.5 text-foreground" value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(0); setSelected(new Set()); }}>
+            <option value={100}>100</option>
+            <option value={500}>500</option>
+          </select>
+        </label>
+      </div>}
+      {!canEditSettings && <label className="flex items-center justify-end gap-2 text-sm text-muted-foreground">
+        Contatos por página
+        <select aria-label="Contatos por página" className="rounded-md border border-border bg-card px-2 py-1.5 text-foreground" value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(0); setSelected(new Set()); }}>
+          <option value={100}>100</option>
+          <option value={500}>500</option>
+        </select>
+      </label>}
+      {canEditSettings && selected.size > 0 && (
         <div className="flex items-center justify-between gap-4 rounded-lg border border-border bg-muted/40 px-4 py-2">
           <p className="text-sm text-foreground">
             {t('selectedCount', { count: selected.size })}
@@ -514,16 +544,10 @@ export default function ContactsPage() {
             >
               {t('clearSelection')}
             </Button>
-            <GatedButton
-              variant="destructive"
-              size="sm"
-              canAct={canEdit}
-              gateReason={tGate('reasons.deleteContacts')}
-              onClick={() => setBulkDeleteOpen(true)}
-            >
+            <Button variant="destructive" size="sm" onClick={() => setBulkDeleteOpen(true)}>
               <Trash2 className="size-4" />
               {t('deleteSelected')}
-            </GatedButton>
+            </Button>
           </div>
         </div>
       )}
@@ -533,7 +557,7 @@ export default function ContactsPage() {
         <Table>
           <TableHeader>
             <TableRow className="border-border hover:bg-transparent">
-              <TableHead className="w-10">
+              {canEditSettings && <TableHead className="w-10">
                 <Checkbox
                   checked={allOnPageSelected}
                   indeterminate={!allOnPageSelected && someOnPageSelected}
@@ -541,7 +565,7 @@ export default function ContactsPage() {
                   disabled={contacts.length === 0}
                   aria-label={t('selectAllOnPage')}
                 />
-              </TableHead>
+              </TableHead>}
               <TableHead className="text-muted-foreground">{t('tableColumns.name')}</TableHead>
               <TableHead className="text-muted-foreground">{t('tableColumns.phone')}</TableHead>
               <TableHead className="text-muted-foreground hidden md:table-cell">{t('tableColumns.email')}</TableHead>
@@ -554,7 +578,7 @@ export default function ContactsPage() {
           <TableBody>
             {loading ? (
               <TableRow className="border-border">
-                <TableCell colSpan={8} className="text-center py-12">
+                <TableCell colSpan={canEditSettings ? 8 : 7} className="text-center py-12">
                   <div className="flex flex-col items-center gap-2">
                     <Loader2 className="size-6 animate-spin text-primary" />
                     <p className="text-sm text-muted-foreground">{t('loading')}</p>
@@ -563,7 +587,7 @@ export default function ContactsPage() {
               </TableRow>
             ) : contacts.length === 0 ? (
               <TableRow className="border-border">
-                <TableCell colSpan={8} className="text-center py-12">
+                <TableCell colSpan={canEditSettings ? 8 : 7} className="text-center py-12">
                   <div className="flex flex-col items-center gap-2">
                     <Users className="size-8 text-muted-foreground" />
                     <p className="text-sm text-muted-foreground">
@@ -594,13 +618,13 @@ export default function ContactsPage() {
                   className="border-border hover:bg-muted/50 cursor-pointer"
                   onClick={() => openDetail(contact.id)}
                 >
-                  <TableCell onClick={(e) => e.stopPropagation()}>
+                  {canEditSettings && <TableCell onClick={(e) => e.stopPropagation()}>
                     <Checkbox
                       checked={selected.has(contact.id)}
                       onCheckedChange={() => toggleSelect(contact.id)}
                       aria-label={t('selectContact', { name: contact.name || contact.phone })}
                     />
-                  </TableCell>
+                  </TableCell>}
                   <TableCell className="text-foreground font-medium">
                     {contact.name || <span className="text-muted-foreground italic">{t('unnamed')}</span>}
                   </TableCell>
@@ -673,8 +697,8 @@ export default function ContactsPage() {
                           <Pencil className="size-4" />
                           {t('editAction')}
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator className="bg-border" />
-                        <DropdownMenuItem
+                        {canEditSettings && <DropdownMenuSeparator className="bg-border" />}
+                        {canEditSettings && <DropdownMenuItem
                           variant="destructive"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -683,7 +707,7 @@ export default function ContactsPage() {
                         >
                           <Trash2 className="size-4" />
                           {t('deleteAction')}
-                        </DropdownMenuItem>
+                        </DropdownMenuItem>}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -699,8 +723,8 @@ export default function ContactsPage() {
         <div className="flex items-center justify-between">
           <p className="text-xs text-muted-foreground">
             {t('showingPagination', {
-              start: page * PAGE_SIZE + 1,
-              end: Math.min((page + 1) * PAGE_SIZE, totalCount),
+              start: page * pageSize + 1,
+              end: Math.min((page + 1) * pageSize, totalCount),
               total: totalCount
             })}
           </p>
