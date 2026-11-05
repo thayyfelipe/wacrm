@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/automations/admin-client'
 import { decrypt } from '@/lib/whatsapp/encryption'
-import { parseApprovedSale, verifyKiwifySignature } from '@/lib/kiwify/signature'
+import { parseApprovedSale, parseKiwifyOrderEvent, verifyKiwifySignature } from '@/lib/kiwify/signature'
 
 type Context = { params: Promise<{ id: string }> }
 const MAX_BODY_BYTES = 256 * 1024
@@ -46,19 +46,29 @@ export async function POST(request: Request, context: Context) {
   if (!verifyKiwifySignature(body, signature, token, raw)) {
     return NextResponse.json({ error: 'Assinatura inválida' }, { status: 401 })
   }
-  const sale = parseApprovedSale(body)
-  if (!sale) return NextResponse.json({ received: true, recorded: false })
-  if (sale.product_id !== integration.product_id) {
+  const event = parseKiwifyOrderEvent(body)
+  if (!event || event.product_id !== integration.product_id) {
     return NextResponse.json({ received: true, recorded: false })
   }
-  // ON CONFLICT DO NOTHING guarantees retries and duplicate connections
-  // within one account never create a second sale.
-  const { error } = await db.from('kiwify_sales').upsert({
-    ...sale, integration_id: id, account_id: integration.account_id,
-  }, { onConflict: 'account_id,order_id', ignoreDuplicates: true })
+  if (event.event_type === 'order_approved') {
+    const sale = parseApprovedSale(body)
+    if (!sale) return NextResponse.json({ received: true, recorded: false })
+    // Keep the existing approved-sales behavior, including retry safety.
+    const { error: saleError } = await db.from('kiwify_sales').upsert({
+      ...sale, integration_id: id, account_id: integration.account_id,
+    }, { onConflict: 'account_id,order_id', ignoreDuplicates: true })
+    if (saleError) {
+      console.error('[kiwify] sale insert failed', { integrationId: id, code: saleError.code })
+      return NextResponse.json({ error: 'Falha temporária' }, { status: 503 })
+    }
+  }
+  const { error } = await db.from('kiwify_order_events').upsert({
+    ...event, integration_id: id, account_id: integration.account_id,
+  }, { onConflict: 'account_id,order_id,product_id,event_type', ignoreDuplicates: true })
   if (error) {
-    console.error('[kiwify] sale insert failed', { integrationId: id, code: error.code })
+    console.error('[kiwify] event insert failed', { integrationId: id, code: error.code })
     return NextResponse.json({ error: 'Falha temporária' }, { status: 503 })
   }
-  return NextResponse.json({ received: true, recorded: true })
+  // Event receipt never initiates WhatsApp sends; those require separate approval.
+  return NextResponse.json({ received: true, recorded: event.event_type === 'order_approved', event_recorded: true })
 }

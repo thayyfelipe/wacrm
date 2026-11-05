@@ -2,7 +2,7 @@ import { createHmac } from 'node:crypto'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const state = vi.hoisted(() => ({
-  inserts: [] as Array<Record<string, unknown>>,
+  inserts: [] as Array<{ table: string; row: Record<string, unknown> }>,
   seen: new Set<string>(),
 }))
 
@@ -19,11 +19,11 @@ vi.mock('@/lib/automations/admin-client', () => ({
           error: null,
         }),
         upsert: async (row: Record<string, unknown>, options: { onConflict: string; ignoreDuplicates: boolean }) => {
-          expect(options).toEqual({ onConflict: 'account_id,order_id', ignoreDuplicates: true })
-          const key = `${row.account_id}:${row.order_id}`
+          expect(options.ignoreDuplicates).toBe(true)
+          const key = `${table}:${row.account_id}:${row.order_id}:${row.event_type ?? ''}`
           if (!state.seen.has(key)) {
             state.seen.add(key)
-            state.inserts.push(row)
+            state.inserts.push({ table, row })
           }
           return { error: null }
         },
@@ -73,8 +73,33 @@ describe('Kiwify webhook tenant and sale guards', () => {
   it('stamps the integration account, omits card/CPF and ignores a duplicate delivery', async () => {
     expect((await send(sale)).status).toBe(200)
     expect((await send(sale)).status).toBe(200)
-    expect(state.inserts).toHaveLength(1)
-    expect(state.inserts[0]).toMatchObject({ account_id: 'account-A', product_id: 'product-A', order_id: 'order-1' })
+    expect(state.inserts).toHaveLength(2)
+    expect(state.inserts.map((i) => i.table)).toEqual(['kiwify_sales', 'kiwify_order_events'])
+    expect(state.inserts[1].row).toMatchObject({ account_id: 'account-A', product_id: 'product-A', order_id: 'order-1', event_type: 'order_approved' })
     expect(JSON.stringify(state.inserts[0])).not.toMatch(/CPF|1234/)
+  })
+
+  it('records a pending Pix once without writing a sale or sending a message', async () => {
+    const pix = { ...sale, webhook_event_type: 'pix_created', order_status: 'waiting_payment', payment_method: 'pix' }
+    const first = await send(pix)
+    expect(first.status).toBe(200)
+    expect(await first.json()).toMatchObject({ received: true, recorded: false, event_recorded: true })
+    expect((await send(pix)).status).toBe(200)
+    expect(state.inserts).toHaveLength(1)
+    expect(state.inserts[0].table).toBe('kiwify_order_events')
+    expect(state.inserts[0].row.event_type).toBe('pix_created')
+  })
+
+  it('does not interpret an arbitrary waiting order as a Pix event', async () => {
+    expect((await send({ ...sale, webhook_event_type: 'pix_created', order_status: 'paid', payment_method: 'pix' })).status).toBe(200)
+    expect(state.inserts).toHaveLength(0)
+  })
+
+  it('keeps the Pix and approval as distinct events for one order', async () => {
+    await send({ ...sale, webhook_event_type: 'pix_created', order_status: 'waiting_payment', payment_method: 'pix' })
+    await send(sale)
+    expect(state.inserts.map((i) => i.table)).toEqual([
+      'kiwify_order_events', 'kiwify_sales', 'kiwify_order_events',
+    ])
   })
 })

@@ -22,11 +22,21 @@ interface Sale {
   currency: string | null
   received_at: string
 }
+interface KiwifyEvent {
+  id: string
+  order_ref: string | null
+  order_id: string
+  product_name: string | null
+  event_type: 'pix_created' | 'order_approved'
+  customer_name: string | null
+  received_at: string
+}
 
 export function KiwifySettings() {
   const { canEditSettings } = useAuth()
   const [integrations, setIntegrations] = useState<Integration[]>([])
   const [sales, setSales] = useState<Sale[]>([])
+  const [events, setEvents] = useState<KiwifyEvent[]>([])
   const [name, setName] = useState('')
   const [productId, setProductId] = useState('')
   const [tokens, setTokens] = useState<Record<string, string>>({})
@@ -34,9 +44,10 @@ export function KiwifySettings() {
   const [loadError, setLoadError] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
-    const [integrationResponse, salesResponse] = await Promise.all([
+    const [integrationResponse, salesResponse, eventsResponse] = await Promise.all([
       fetch('/api/integrations/kiwify', { cache: 'no-store' }),
       fetch('/api/integrations/kiwify/sales', { cache: 'no-store' }),
+      fetch('/api/integrations/kiwify/events', { cache: 'no-store' }),
     ])
     if (integrationResponse.ok) {
       setIntegrations((await integrationResponse.json()).integrations)
@@ -46,6 +57,7 @@ export function KiwifySettings() {
       setLoadError(payload.error || 'Falha ao carregar as conexões da Kiwify')
     }
     if (salesResponse.ok) setSales((await salesResponse.json()).sales)
+    if (eventsResponse.ok) setEvents((await eventsResponse.json()).events)
   }, [])
 
   useEffect(() => { void refresh().catch(() => toast.error('Falha ao carregar Kiwify')) }, [refresh])
@@ -97,7 +109,7 @@ export function KiwifySettings() {
   return <div className="space-y-6">
     <div>
       <h2 className="text-xl font-semibold text-foreground">Kiwify</h2>
-      <p className="mt-1 text-sm text-muted-foreground">Receba as compras aprovadas dos seus produtos nesta conta do ElooFlow.</p>
+      <p className="mt-1 text-sm text-muted-foreground">Acompanhe os eventos de pagamento dos seus produtos nesta conta do ElooFlow.</p>
     </div>
     {loadError && <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-foreground">{loadError}</p>}
     {canEditSettings && <section className="rounded-2xl border border-border bg-card p-5 space-y-4">
@@ -133,5 +145,15 @@ export function KiwifySettings() {
         </div>)}
       </div>}
     </section>
+    {canEditSettings && <section className="rounded-2xl border border-border bg-card p-5">
+      <h3 className="font-semibold text-foreground">Eventos recebidos</h3>
+      <p className="mt-1 text-sm text-muted-foreground">Pix gerado e compra aprovada. O recebimento de eventos ainda não envia mensagens automáticas.</p>
+      {events.length === 0 ? <p className="mt-3 text-sm text-muted-foreground">Nenhum evento recebido.</p> : <div className="mt-3 space-y-3">
+        {events.map((event) => <div key={event.id} className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3 text-sm">
+          <div><p className="font-medium text-foreground">{event.event_type === 'pix_created' ? 'Pix gerado' : 'Compra aprovada'} · {event.product_name || 'Produto'}</p><p className="text-muted-foreground">{event.customer_name || 'Comprador indisponível'} · {event.order_ref || event.order_id}</p></div>
+          <p className="text-muted-foreground">{new Date(event.received_at).toLocaleString('pt-BR')}</p>
+        </div>)}
+      </div>}
+    </section>}
   </div>
 }
