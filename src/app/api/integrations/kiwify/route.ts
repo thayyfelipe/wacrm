@@ -22,6 +22,7 @@ export async function GET() {
       .from('kiwify_integrations')
       .select('id, name, product_id, enabled, created_at')
       .eq('account_id', ctx.accountId)
+      .is('deleted_at', null)
       .order('created_at', { ascending: false })
     if (error) return databaseError(error)
     return NextResponse.json({ integrations: data })

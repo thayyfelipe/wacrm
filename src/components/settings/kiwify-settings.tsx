@@ -115,6 +115,18 @@ export function KiwifySettings() {
     finally { setBusy(false) }
   }
 
+  async function remove(id: string) {
+    setBusy(true)
+    try {
+      const response = await fetch(`/api/integrations/kiwify/${id}/remove`, { method: 'POST' })
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(result.error || 'Falha ao excluir conexão')
+      await refresh()
+      toast.success('Conexão excluída')
+    } catch (error) { toast.error(error instanceof Error ? error.message : 'Falha ao excluir conexão') }
+    finally { setBusy(false) }
+  }
+
   return <div className="space-y-6">
     <div>
       <h2 className="text-xl font-semibold text-foreground">Kiwify</h2>
@@ -142,6 +154,7 @@ export function KiwifySettings() {
           <Input className="min-w-52 flex-1" type="password" autoComplete="off" aria-label="Token do webhook da Kiwify" placeholder="Token do webhook da Kiwify" value={tokens[integration.id] ?? ''} onChange={(event) => setTokens((current) => ({ ...current, [integration.id]: event.target.value }))} />
           <Button disabled={busy || !(tokens[integration.id]?.trim())} onClick={() => void saveToken(integration.id)}>{integration.enabled ? 'Atualizar token' : 'Ativar conexão'}</Button>
           {integration.enabled && <Button variant="outline" disabled={busy} onClick={() => void deactivate(integration.id)}>Desativar</Button>}
+          {!integration.enabled && <Button variant="outline" disabled={busy} onClick={() => void remove(integration.id)}>Excluir</Button>}
         </div>}
       </section>
     })}
