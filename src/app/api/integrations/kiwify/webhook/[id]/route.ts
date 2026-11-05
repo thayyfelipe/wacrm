@@ -14,7 +14,7 @@ export async function POST(request: Request, context: Context) {
   if (!signature) return NextResponse.json({ error: 'Assinatura ausente' }, { status: 401 })
   const db = supabaseAdmin()
   const { data: integration, error: lookupError } = await db.from('kiwify_integrations')
-    .select('id, account_id, product_id, enabled').eq('id', id).maybeSingle()
+    .select('id, account_id, product_id, enabled').eq('id', id).is('deleted_at', null).maybeSingle()
   if (lookupError) return NextResponse.json({ error: 'Falha temporária' }, { status: 503 })
   if (!integration?.enabled) return NextResponse.json({ error: 'Não encontrado' }, { status: 404 })
   const { data: secret, error: secretError } = await db.from('kiwify_integration_secrets')
