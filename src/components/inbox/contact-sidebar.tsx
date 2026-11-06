@@ -16,6 +16,7 @@ import {
   StickyNote,
   Plus,
   Megaphone,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -26,6 +27,7 @@ import { contactHandle } from "@/lib/whatsapp/wa-identity";
 interface ContactSidebarProps {
   contact: Contact | null;
   conversationId: string | null;
+  onClose: () => void;
 }
 
 type AdOrigin = { referral_source_id: string | null; referral_source_type: string | null; referral_source_url: string | null };
@@ -42,7 +44,7 @@ function utmsFromReferral(url: string | null) {
   }
 }
 
-export function ContactSidebar({ contact, conversationId }: ContactSidebarProps) {
+export function ContactSidebar({ contact, conversationId, onClose }: ContactSidebarProps) {
   const tSidebar = useTranslations("Inbox.sidebar");
   const tThread = useTranslations("Inbox.messageThread");
 
@@ -170,26 +172,18 @@ export function ContactSidebar({ contact, conversationId }: ContactSidebarProps)
   }
 
   const displayName = contact.name || contactHandle(contact);
-  const initials = displayName.charAt(0).toUpperCase();
-
   return (
-    <div className="flex h-full w-70 flex-col border-l border-border bg-card">
+    <div className="flex h-full w-full flex-col border-l border-border bg-card lg:w-70">
       <ScrollArea className="flex-1">
         <div className="p-4">
+          <div className="flex justify-end">
+            <button type="button" onClick={onClose} aria-label="Fechar detalhes do contato" className="rounded-md p-2 text-muted-foreground hover:bg-muted hover:text-foreground">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
           {/* Contact Info */}
           <div className="flex flex-col items-center text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted text-lg font-semibold text-foreground">
-              {contact.avatar_url ? (
-                <img
-                  src={contact.avatar_url}
-                  alt={displayName}
-                  className="h-16 w-16 rounded-full object-cover"
-                />
-              ) : (
-                initials
-              )}
-            </div>
-            <h3 className="mt-3 text-sm font-semibold text-foreground">
+            <h3 className="text-sm font-semibold text-foreground">
               {displayName}
             </h3>
             {contact.company && (
@@ -225,6 +219,7 @@ export function ContactSidebar({ contact, conversationId }: ContactSidebarProps)
           {/* Divider */}
           <div className="my-4 border-t border-border" />
 
+          {/* Tags */}
           <div className="mb-4 px-1">
             <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
               <Megaphone className="h-3 w-3" /> Origem
