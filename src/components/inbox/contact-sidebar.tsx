@@ -15,6 +15,7 @@ import {
   DollarSign,
   StickyNote,
   Plus,
+  Megaphone,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -24,9 +25,12 @@ import { contactHandle } from "@/lib/whatsapp/wa-identity";
 
 interface ContactSidebarProps {
   contact: Contact | null;
+  conversationId: string | null;
 }
 
-export function ContactSidebar({ contact }: ContactSidebarProps) {
+type AdOrigin = { referral_source_id: string | null; referral_source_type: string | null };
+
+export function ContactSidebar({ contact, conversationId }: ContactSidebarProps) {
   const tSidebar = useTranslations("Inbox.sidebar");
   const tThread = useTranslations("Inbox.messageThread");
 
@@ -37,6 +41,28 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
   const [tags, setTags] = useState<(Tag & { contact_tag_id: string })[]>([]);
   const [newNote, setNewNote] = useState("");
   const [addingNote, setAddingNote] = useState(false);
+  const [origin, setOrigin] = useState<AdOrigin | null>(null);
+  const [originLoading, setOriginLoading] = useState(false);
+
+  useEffect(() => {
+    if (!conversationId || !accountId) return;
+    let cancelled = false;
+    queueMicrotask(() => { if (!cancelled) { setOrigin(null); setOriginLoading(true); } });
+    createClient().from('messages')
+      .select('referral_source_id, referral_source_type')
+      .eq('conversation_id', conversationId)
+      .not('referral_source_id', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .then(({ data, error }) => {
+        if (!cancelled) {
+          if (error) console.error('Erro ao consultar origem da conversa:', error);
+          setOrigin((data?.[0] as AdOrigin | undefined) ?? null);
+          setOriginLoading(false);
+        }
+      });
+    return () => { cancelled = true; };
+  }, [conversationId, accountId]);
 
   const fetchContactData = useCallback(async () => {
     if (!contact) return;
@@ -185,6 +211,18 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
           </div>
 
           {/* Divider */}
+          <div className="my-4 border-t border-border" />
+
+          <div className="mb-4 px-1">
+            <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <Megaphone className="h-3 w-3" /> Origem
+            </div>
+            <p className="mt-2 text-sm text-foreground">
+              {originLoading ? 'Consultando...' : origin ? (origin.referral_source_type === 'post' ? 'Publicação da Meta' : 'Anúncio da Meta') : 'Não identificada'}
+            </p>
+            {origin?.referral_source_id && <p className="mt-1 break-all text-xs text-muted-foreground">ID: {origin.referral_source_id}</p>}
+            <p className="mt-1 text-xs text-muted-foreground">{origin ? 'UTMs não fornecidas nesta conversa.' : 'Não é possível distinguir acesso direto sem dados de origem.'}</p>
+          </div>
           <div className="my-4 border-t border-border" />
 
           {/* Tags */}
