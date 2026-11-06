@@ -12,6 +12,7 @@ import { useUnreadNotifications } from "@/hooks/use-unread-notifications";
 import {
   Bell,
   Bot,
+  ChartNoAxesCombined,
   Crown,
   GitBranch,
   LogOut,
@@ -99,6 +100,7 @@ const navItems: NavItem[] = [
   { href: "/automations", labelKey: "automations", icon: AutomationsIcon },
   { href: "/flows", labelKey: "flows", icon: FlowsIcon },
   { href: "/agents", labelKey: "aiAgents", icon: Bot },
+  { href: "/tracking", labelKey: "tracking", icon: ChartNoAxesCombined },
 ];
 
 const bottomNavItems = [
