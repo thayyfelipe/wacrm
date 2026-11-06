@@ -52,6 +52,8 @@ interface WhatsAppMessage {
    * `@/lib/whatsapp/wa-identity`.
    */
   from?: string
+  /** Recipient for business-app message echoes (coexistence). */
+  to?: string
   /** Sender's business-scoped user ID (BSUID). */
   from_user_id?: string
   /** Sender's portfolio-level BSUID. */
@@ -123,6 +125,8 @@ interface WhatsAppWebhookEntry {
         parent_user_id?: string
       }>
       messages?: WhatsAppMessage[]
+      /** Outbound messages sent in the WhatsApp Business mobile app. */
+      message_echoes?: WhatsAppMessage[]
       statuses?: Array<{
         id: string
         status: string
@@ -304,6 +308,20 @@ async function processWebhook(body: { entry?: WhatsAppWebhookEntry[] }) {
 
       const value = change.value
 
+      if (change.field === 'smb_message_echoes' && value.message_echoes?.length) {
+        const { data: configs, error } = await supabaseAdmin()
+          .from('whatsapp_config').select('*')
+          .eq('phone_number_id', value.metadata.phone_number_id)
+        if (error || configs?.length !== 1) {
+          console.error('[webhook] echo: number does not map to one account', value.metadata.phone_number_id)
+          continue
+        }
+        for (const echo of value.message_echoes) {
+          await processBusinessAppEcho(echo, configs[0].account_id, configs[0].user_id, decrypt(configs[0].access_token))
+        }
+        continue
+      }
+
       // Handle status updates
       if (value.statuses) {
         for (const status of value.statuses) {
@@ -378,6 +396,55 @@ async function processWebhook(body: { entry?: WhatsAppWebhookEntry[] }) {
       }
     }
   }
+}
+
+/** Coexistence echoes are outbound; they must never trigger inbound automations. */
+async function processBusinessAppEcho(
+  echo: WhatsAppMessage,
+  accountId: string,
+  configOwnerUserId: string,
+  accessToken: string,
+) {
+  if (!echo.id || !echo.to || !echo.timestamp) return
+  const phone = normalizePhone(echo.to)
+  if (!phone) return
+  const recipient = await findOrCreateContact(accountId, configOwnerUserId, {
+    phone, waUserId: null, waParentUserId: null, waUsername: null, name: '',
+  })
+  if (!recipient) return
+  const contact = recipient.contact
+  const resolved = await findOrCreateConversation(accountId, configOwnerUserId, contact.id)
+  if (!resolved) return
+  const { conversation } = resolved
+  const allowed = new Set(['text', 'image', 'audio', 'video', 'document', 'location'])
+  const contentType = allowed.has(echo.type) ? echo.type : 'text'
+  const parsed = await parseMessageContent(echo, accessToken, { accountId })
+  const body = parsed.contentText ?? (contentType === 'text' ? `[${echo.type}]` : null)
+  const sentAt = Number(echo.timestamp)
+  const createdAt = Number.isFinite(sentAt) && sentAt > 0
+    ? new Date(sentAt * 1000).toISOString() : new Date().toISOString()
+
+  const { data, error } = await supabaseAdmin().from('messages').upsert({
+    conversation_id: conversation.id,
+    sender_type: 'agent',
+    content_type: contentType,
+    content_text: body,
+    media_url: parsed.mediaUrl,
+    media_type: parsed.mediaType,
+    message_id: echo.id,
+    status: 'sent',
+    created_at: createdAt,
+  }, { onConflict: 'conversation_id,message_id', ignoreDuplicates: true }).select('id')
+  if (error) {
+    console.error('[webhook] echo insert failed:', error.message)
+    return
+  }
+  if (!data?.length) return
+  const { error: convError } = await supabaseAdmin().from('conversations')
+    .update({ last_message_text: body || `[${echo.type}]`, last_message_at: createdAt })
+    .eq('id', conversation.id)
+    .eq('account_id', accountId)
+  if (convError) console.error('[webhook] echo conversation update failed:', convError.message)
 }
 
 // The happy-path status ladder — pending → sent → delivered → read →
