@@ -28,7 +28,19 @@ interface ContactSidebarProps {
   conversationId: string | null;
 }
 
-type AdOrigin = { referral_source_id: string | null; referral_source_type: string | null };
+type AdOrigin = { referral_source_id: string | null; referral_source_type: string | null; referral_source_url: string | null };
+const UTM_FIELDS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'] as const;
+
+function utmsFromReferral(url: string | null) {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    if (!['https:', 'http:'].includes(parsed.protocol)) return null;
+    return parsed.searchParams;
+  } catch {
+    return null;
+  }
+}
 
 export function ContactSidebar({ contact, conversationId }: ContactSidebarProps) {
   const tSidebar = useTranslations("Inbox.sidebar");
@@ -49,7 +61,7 @@ export function ContactSidebar({ contact, conversationId }: ContactSidebarProps)
     let cancelled = false;
     queueMicrotask(() => { if (!cancelled) { setOrigin(null); setOriginLoading(true); } });
     createClient().from('messages')
-      .select('referral_source_id, referral_source_type')
+      .select('referral_source_id, referral_source_type, referral_source_url')
       .eq('conversation_id', conversationId)
       .not('referral_source_id', 'is', null)
       .order('created_at', { ascending: false })
@@ -220,8 +232,16 @@ export function ContactSidebar({ contact, conversationId }: ContactSidebarProps)
             <p className="mt-2 text-sm text-foreground">
               {originLoading ? 'Consultando...' : origin ? (origin.referral_source_type === 'post' ? 'Publicação da Meta' : 'Anúncio da Meta') : 'Não identificada'}
             </p>
-            {origin?.referral_source_id && <p className="mt-1 break-all text-xs text-muted-foreground">ID: {origin.referral_source_id}</p>}
-            <p className="mt-1 text-xs text-muted-foreground">{origin ? 'UTMs não fornecidas nesta conversa.' : 'Não é possível distinguir acesso direto sem dados de origem.'}</p>
+            {origin?.referral_source_id && <p className="mt-1 break-all text-xs text-muted-foreground">ID do anúncio: {origin.referral_source_id}</p>}
+            <div className="mt-3 space-y-1 border-t border-border pt-2">
+              {UTM_FIELDS.map((field) => (
+                <div key={field} className="flex justify-between gap-2 text-xs">
+                  <span className="text-muted-foreground">{field}</span>
+                  <span className="max-w-[60%] break-all text-right text-foreground">{utmsFromReferral(origin?.referral_source_url ?? null)?.get(field) || '—'}</span>
+                </div>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">UTMs aparecem quando constam no link recebido com a origem.</p>
           </div>
           <div className="my-4 border-t border-border" />
 
