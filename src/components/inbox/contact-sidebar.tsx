@@ -26,23 +26,12 @@ import { contactHandle } from "@/lib/whatsapp/wa-identity";
 interface ContactSidebarProps {
   contact: Contact | null;
   conversationId: string | null;
+  tracking?: boolean;
 }
 
 type AdOrigin = { referral_source_id: string | null; referral_source_type: string | null; referral_source_url: string | null };
-const UTM_FIELDS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'] as const;
 
-function utmsFromReferral(url: string | null) {
-  if (!url) return null;
-  try {
-    const parsed = new URL(url);
-    if (!['https:', 'http:'].includes(parsed.protocol)) return null;
-    return parsed.searchParams;
-  } catch {
-    return null;
-  }
-}
-
-export function ContactSidebar({ contact, conversationId }: ContactSidebarProps) {
+export function ContactSidebar({ contact, conversationId, tracking = false }: ContactSidebarProps) {
   const tSidebar = useTranslations("Inbox.sidebar");
   const tThread = useTranslations("Inbox.messageThread");
 
@@ -57,7 +46,7 @@ export function ContactSidebar({ contact, conversationId }: ContactSidebarProps)
   const [originLoading, setOriginLoading] = useState(false);
 
   useEffect(() => {
-    if (!conversationId || !accountId) return;
+    if (!tracking || !conversationId || !accountId) return;
     let cancelled = false;
     queueMicrotask(() => { if (!cancelled) { setOrigin(null); setOriginLoading(true); } });
     createClient().from('messages')
@@ -74,7 +63,7 @@ export function ContactSidebar({ contact, conversationId }: ContactSidebarProps)
         }
       });
     return () => { cancelled = true; };
-  }, [conversationId, accountId]);
+  }, [conversationId, accountId, tracking]);
 
   const fetchContactData = useCallback(async () => {
     if (!contact) return;
@@ -178,7 +167,7 @@ export function ContactSidebar({ contact, conversationId }: ContactSidebarProps)
         <div className="p-4">
           {/* Contact Info */}
           <div className="flex flex-col items-center text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted text-lg font-semibold text-foreground">
+            {!tracking && <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted text-lg font-semibold text-foreground">
               {contact.avatar_url ? (
                 <img
                   src={contact.avatar_url}
@@ -188,8 +177,8 @@ export function ContactSidebar({ contact, conversationId }: ContactSidebarProps)
               ) : (
                 initials
               )}
-            </div>
-            <h3 className="mt-3 text-sm font-semibold text-foreground">
+            </div>}
+            <h3 className={tracking ? "text-sm font-semibold text-foreground" : "mt-3 text-sm font-semibold text-foreground"}>
               {displayName}
             </h3>
             {contact.company && (
@@ -225,6 +214,8 @@ export function ContactSidebar({ contact, conversationId }: ContactSidebarProps)
           {/* Divider */}
           <div className="my-4 border-t border-border" />
 
+          {tracking && <>
+          {/* Origem */}
           <div className="mb-4 px-1">
             <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
               <Megaphone className="h-3 w-3" /> Origem
@@ -234,16 +225,15 @@ export function ContactSidebar({ contact, conversationId }: ContactSidebarProps)
             </p>
             {origin?.referral_source_id && <p className="mt-1 break-all text-xs text-muted-foreground">ID do anúncio: {origin.referral_source_id}</p>}
             <div className="mt-3 space-y-1 border-t border-border pt-2">
-              {UTM_FIELDS.map((field) => (
-                <div key={field} className="flex justify-between gap-2 text-xs">
-                  <span className="text-muted-foreground">{field}</span>
-                  <span className="max-w-[60%] break-all text-right text-foreground">{utmsFromReferral(origin?.referral_source_url ?? null)?.get(field) || '—'}</span>
-                </div>
-              ))}
+              {(['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'] as const).map((field) => {
+                let value: string | null = null;
+                try { value = new URL(origin?.referral_source_url ?? '').searchParams.get(field); } catch { /* Sem URL atribuível. */ }
+                return <div key={field} className="flex justify-between gap-2 text-xs"><span className="text-muted-foreground">{field}</span><span className="max-w-[60%] break-all text-right">{value || '—'}</span></div>;
+              })}
             </div>
-            <p className="mt-2 text-xs text-muted-foreground">UTMs aparecem quando constam no link recebido com a origem.</p>
           </div>
           <div className="my-4 border-t border-border" />
+          </>}
 
           {/* Tags */}
           <div>
