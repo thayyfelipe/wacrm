@@ -88,6 +88,13 @@ interface WhatsAppMessage {
   button?: { text?: string; payload?: string }
   /** Present when the customer swipe-replies to one of our messages. */
   context?: { id: string }
+  /** Present on inbound messages initiated from a Click-to-WhatsApp ad/post. */
+  referral?: {
+    source_id?: string
+    source_type?: string
+    source_url?: string
+    ctwa_clid?: string
+  }
 }
 
 /** One entry of a failed status's `errors` array, as Meta sends it. */
@@ -812,6 +819,12 @@ async function processMessage(
         // the column; null for every other content_type so existing inserts
         // behave identically.
         interactive_reply_id: interactiveReplyId,
+        // Keep attribution on the originating message. A later ad click
+        // gets its own referral rather than replacing the first one.
+        referral_source_id: message.referral?.source_id || null,
+        referral_source_type: message.referral?.source_type || null,
+        referral_source_url: message.referral?.source_url || null,
+        referral_ctwa_clid: message.referral?.ctwa_clid || null,
       },
       { onConflict: 'conversation_id,message_id', ignoreDuplicates: true }
     )

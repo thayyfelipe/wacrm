@@ -414,6 +414,25 @@ beforeEach(() => {
 })
 
 describe('inbound webhook: idempotent insert (#367)', () => {
+  it('stores the Meta ad ID and click ID on the originating message', async () => {
+    await runWebhook({
+      ...TEXT_MESSAGE,
+      referral: {
+        source_id: '238500000000001',
+        source_type: 'ad',
+        source_url: 'https://www.facebook.com/ads/example',
+        ctwa_clid: 'click-123',
+      },
+    })
+
+    expect(h.state.upsertCalls[0].row).toMatchObject({
+      referral_source_id: '238500000000001',
+      referral_source_type: 'ad',
+      referral_source_url: 'https://www.facebook.com/ads/example',
+      referral_ctwa_clid: 'click-123',
+    })
+  })
+
   it('a genuine first delivery persists once and fans out downstream', async () => {
     await runWebhook()
 
