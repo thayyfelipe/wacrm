@@ -78,6 +78,7 @@ vi.mock('@supabase/supabase-js', () => ({
         case 'conversations':
           // findOrCreateConversation: select().eq().eq().order().limit()
           return {
+            update: () => ({ eq: () => ({ eq: () => Promise.resolve({ error: null }) }) }),
             select: () => ({
               eq: () => ({
                 eq: () => ({
@@ -414,6 +415,17 @@ beforeEach(() => {
 })
 
 describe('inbound webhook: idempotent insert (#367)', () => {
+  it('stores business-app echoes as outbound once without inbound automations', async () => {
+    const body = { entry: [{ changes: [{ field: 'smb_message_echoes', value: {
+      metadata: { phone_number_id: 'pn-1' },
+      message_echoes: [{ id: 'wamid.ECHO1', from: '15550000000', to: '15551230000', timestamp: '1700000000', type: 'text', text: { body: 'Enviado pelo celular' } }],
+    } }] }] }
+    const request = { text: async () => JSON.stringify(body), headers: { get: () => 'sha256=stub' } } as unknown as Request
+    await POST(request)
+    for (const cb of h.state.afterCallbacks) await cb()
+    expect(h.state.upsertCalls[0].row).toMatchObject({ sender_type: 'agent', message_id: 'wamid.ECHO1', content_text: 'Enviado pelo celular' })
+    expect(h.runAutomationsForTrigger).not.toHaveBeenCalled()
+  })
   it('stores the Meta ad ID and click ID on the originating message', async () => {
     await runWebhook({
       ...TEXT_MESSAGE,
