@@ -143,11 +143,12 @@ export async function planBroadcastResume(
   db: SupabaseClient,
   accountId: string,
   broadcastId: string,
-  scope: ResumeScope
+  scope: ResumeScope,
+  maxRecipients = RESUME_MAX_PER_REQUEST
 ): Promise<ResumePlan> {
   const { data: broadcast, error: bcError } = await db
     .from('broadcasts')
-    .select('id, template_name, template_language')
+    .select('id, template_name, template_language, audience_filter')
     .eq('id', broadcastId)
     .eq('account_id', accountId)
     .maybeSingle();
@@ -170,7 +171,7 @@ export async function planBroadcastResume(
     // in a stable order instead of re-picking the same slice.
     .order('created_at', { ascending: true })
     .order('id', { ascending: true })
-    .range(0, RESUME_MAX_PER_REQUEST - 1);
+    .range(0, maxRecipients - 1);
 
   if (recError) {
     console.error('[broadcast-resume] recipient load failed:', recError.message);
@@ -199,7 +200,7 @@ export async function planBroadcastResume(
       .in('id', ids);
   }
 
-  const slice = sendable.slice(0, RESUME_MAX_PER_REQUEST);
+  const slice = sendable.slice(0, maxRecipients);
   const unloaded = Math.max(0, (inScopeCount ?? rows.length) - rows.length);
   const remaining = sendable.length - slice.length + unloaded;
 
@@ -256,6 +257,11 @@ export async function planBroadcastResume(
     })),
     rejected: 0,
   };
+
+  const headerMediaUrl = (broadcast.audience_filter as { headerMediaUrl?: unknown } | null)?.headerMediaUrl;
+  if (typeof headerMediaUrl === 'string' && headerMediaUrl.trim()) {
+    for (const recipient of plan.planned) recipient.messageParams = { headerMediaUrl: headerMediaUrl.trim() };
+  }
 
   return { plan, remaining, unsendable: unsendable.length };
 }

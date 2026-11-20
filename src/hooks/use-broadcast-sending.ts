@@ -46,6 +46,7 @@ interface BroadcastPayload {
    * falls back to the template's stored URL only when this is empty.
    */
   headerMediaUrl?: string;
+  scheduledAt?: string;
 }
 
 interface UseBroadcastSendingReturn {
@@ -316,8 +317,10 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
             tagIds: payload.audience.tagIds,
             customField: payload.audience.customField,
             excludeTagIds: payload.audience.excludeTagIds,
+            headerMediaUrl: payload.headerMediaUrl?.trim() || undefined,
           },
-          status: 'sending',
+          status: payload.scheduledAt ? 'scheduled' : 'sending',
+          scheduled_at: payload.scheduledAt ?? null,
           total_recipients: contacts.length,
           sent_count: 0,
           delivered_count: 0,
@@ -391,6 +394,13 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
             }),
           );
         }
+      }
+
+      // Freeze the audience and personalized values now. The server cron
+      // will deliver these rows at the requested time, even if the tab closes.
+      if (payload.scheduledAt) {
+        setProgress(100);
+        return broadcast.id;
       }
 
       // ── Step 4: Fetch recipients back (joined contact) ────────────

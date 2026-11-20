@@ -24,6 +24,9 @@ interface Step4Props {
   template: MessageTemplate;
   audience: AudienceConfig;
   onSend: () => void;
+  onSchedule: () => void;
+  scheduledAt: string;
+  onScheduledAtChange: (value: string) => void;
   onSaveDraft?: () => void;
   onBack: () => void;
   isProcessing: boolean;
@@ -36,6 +39,9 @@ export function Step4ScheduleSend({
   template,
   audience,
   onSend,
+  onSchedule,
+  scheduledAt,
+  onScheduledAtChange,
   onSaveDraft,
   onBack,
   isProcessing,
@@ -77,6 +83,13 @@ export function Step4ScheduleSend({
         <p className="mt-1 text-sm text-muted-foreground">
           {t('scheduleSend.subtitle')}
         </p>
+      </div>
+
+      <div className="space-y-2">
+        <label htmlFor="broadcast-schedule" className="text-sm font-medium text-foreground">Programar para</label>
+        <Input id="broadcast-schedule" type="datetime-local" value={scheduledAt}
+          onChange={(event) => onScheduledAtChange(event.target.value)} />
+        <p className="text-xs text-muted-foreground">Use o horário local do seu dispositivo. Os contatos e as variáveis ficam definidos ao programar.</p>
       </div>
 
       {/* Broadcast Name */}
@@ -153,6 +166,7 @@ export function Step4ScheduleSend({
         </Button>
 
         <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={onSchedule} disabled={!name.trim() || !scheduledAt || isProcessing}>Programar</Button>
           {onSaveDraft && (
             <Button
               variant="outline"
