@@ -1,8 +1,43 @@
 import { timingSafeEqual } from 'node:crypto'
-import { NextResponse } from 'next/server'
+import { NextResponse, after } from 'next/server'
 import { supabaseAdmin } from '@/lib/automations/admin-client'
 import { expireAwaitingReplies, resumePendingExecution } from '@/lib/automations/engine'
 import type { AutomationContext } from '@/lib/automations/engine'
+import { claimBroadcastDelivery, markBroadcastSending, planBroadcastResume, releaseBroadcastDelivery, DELIVERY_LOCK_STALE_MS } from '@/lib/whatsapp/broadcast-resume'
+import { deliverBroadcast, finalizeBroadcastStatus } from '@/lib/whatsapp/broadcast-core'
+
+export const maxDuration = 300
+
+async function drainScheduledBroadcasts() {
+  const admin = supabaseAdmin()
+  const { data: due, error } = await admin.from('broadcasts')
+    .select('id, account_id')
+    .in('status', ['scheduled', 'sending'])
+    .not('scheduled_at', 'is', null)
+    .lte('scheduled_at', new Date().toISOString())
+    .or(`delivery_locked_at.is.null,delivery_locked_at.lt.${new Date(Date.now() - DELIVERY_LOCK_STALE_MS).toISOString()}`)
+    .order('scheduled_at', { ascending: true }).limit(5)
+  if (error) throw error
+  let claimed = 0
+  for (const row of due ?? []) {
+    if (!await claimBroadcastDelivery(admin, row.account_id, row.id)) continue
+    claimed++
+    // Each invocation has a bounded pass. Pending rows remain for the next tick.
+    after(async () => {
+      try {
+        const { plan } = await planBroadcastResume(admin, row.account_id, row.id, 'pending', 30)
+        await markBroadcastSending(admin, row.id)
+        await deliverBroadcast(admin, plan)
+      } catch (err) {
+        console.error('[broadcast-cron] delivery failed:', row.id, err)
+        await finalizeBroadcastStatus(admin, row.id).catch(() => {})
+      } finally {
+        await releaseBroadcastDelivery(admin, row.id)
+      }
+    })
+  }
+  return claimed
+}
 
 /**
  * Drain due `automation_pending_executions` rows. Meant to be hit
@@ -34,6 +69,7 @@ export async function GET(request: Request) {
   // webhook already refuses to resume them; this just settles their
   // status and explains the outcome on the log.
   const expired = await expireAwaitingReplies()
+  const scheduled = await drainScheduledBroadcasts()
 
   const admin = supabaseAdmin()
   const { data: due, error } = await admin
@@ -45,7 +81,7 @@ export async function GET(request: Request) {
     .limit(50)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  if (!due || due.length === 0) return NextResponse.json({ processed: 0, expired })
+  if (!due || due.length === 0) return NextResponse.json({ processed: 0, expired, scheduled })
 
   let processed = 0
   for (const row of due) {
@@ -75,5 +111,5 @@ export async function GET(request: Request) {
     processed++
   }
 
-  return NextResponse.json({ processed, expired })
+  return NextResponse.json({ processed, expired, scheduled })
 }

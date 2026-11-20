@@ -59,6 +59,7 @@ interface PlannedRecipient {
   recipientRowId: string;
   phone: string;
   params: string[];
+  messageParams?: { headerMediaUrl: string };
 }
 
 export interface BroadcastPlan {
@@ -277,6 +278,7 @@ export async function deliverBroadcast(
           language: plan.templateLanguage,
           template: plan.templateRow ?? undefined,
           params: recipient.params,
+          messageParams: recipient.messageParams,
         });
         sentMessageId = result.messageId;
         lastError = null;

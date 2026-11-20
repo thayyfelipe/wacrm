@@ -46,6 +46,7 @@ export default function NewBroadcastPage() {
   >({});
   const [headerMediaUrl, setHeaderMediaUrl] = useState('');
   const [name, setName] = useState('');
+  const [scheduledAt, setScheduledAt] = useState('');
   const [suggestionsAccountId, setSuggestionsAccountId] = useState<string | null>(null);
 
   // Load only when starting this wizard. Going back, choosing a new model,
@@ -88,6 +89,23 @@ export default function NewBroadcastPage() {
       const message = err instanceof Error ? err.message : t('broadcastFailed');
       console.error('Broadcast failed:', err);
       toast.error(message);
+    }
+  }
+
+  async function handleSchedule() {
+    if (!template || !scheduledAt || new Date(scheduledAt).getTime() <= Date.now() + 60_000) {
+      toast.error('Escolha uma data e hora pelo menos um minuto no futuro.');
+      return;
+    }
+    try {
+      const broadcastId = await createAndSendBroadcast({
+        name, template, audience, variables, headerMediaUrl,
+        scheduledAt: new Date(scheduledAt).toISOString(),
+      });
+      toast.success('Disparo programado com sucesso.');
+      router.push(`/broadcasts/${broadcastId}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Não foi possível programar o disparo.');
     }
   }
 
@@ -243,6 +261,9 @@ export default function NewBroadcastPage() {
               template={template}
               audience={audience}
               onSend={handleSend}
+              onSchedule={handleSchedule}
+              scheduledAt={scheduledAt}
+              onScheduledAtChange={setScheduledAt}
               onSaveDraft={handleSaveDraft}
               onBack={() => setCurrentStep(2)}
               isProcessing={isProcessing}
